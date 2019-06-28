@@ -24,7 +24,7 @@ AC_SUBST([ENDIAN_FLAG])
 AC_PROG_CC
 AC_PROG_LIBTOOL
 
-AC_CHECK_LIB([pdbg], [pdbg_targets_init])
+AC_CHECK_LIB([pdbg], [pdbg_targets_init], [], [], [-lfdt])
 if test x"$ac_cv_lib_pdbg_pdbg_targets_init" != "xyes" ; then
 	AC_MSG_ERROR([PDBG library not found])
 fi
