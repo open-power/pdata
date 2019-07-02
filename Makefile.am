@@ -8,10 +8,10 @@ bin_PROGRAMS = attributes
 endif
 EXTRA_PROGRAMS = attributes
 
-lib_LIBRARIES = libcommon.a
+noinst_LTLIBRARIES = libcommon.la
 lib_LTLIBRARIES = libatdb.la
 
-libcommon_a_SOURCES = \
+libcommon_la_SOURCES = \
 	ccan/build_assert/build_assert.h \
 	ccan/hash/hash.h \
 	ccan/hash/hash.c \
@@ -29,10 +29,11 @@ libatdb_la_SOURCES = \
 	atdb/atdb_io.c \
 	atdb/atdb_io.h \
 	atdb/atdb_lowlevel.c
+libatdb_la_LIBADD = libcommon.la
 
 attributes_SOURCES = \
 	tools/attribute.c \
 	tools/attribute.h \
 	tools/translate.c \
 	tools/translate.h
-attributes_LDADD = libatdb.la libcommon.a
+attributes_LDADD = libatdb.la
