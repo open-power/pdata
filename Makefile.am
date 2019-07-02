@@ -11,6 +11,8 @@ EXTRA_PROGRAMS = attributes
 noinst_LTLIBRARIES = libcommon.la
 lib_LTLIBRARIES = libatdb.la
 
+nobase_include_HEADERS = atdb/atdb.h atdb/atdb_blob.h
+
 libcommon_la_SOURCES = \
 	ccan/build_assert/build_assert.h \
 	ccan/hash/hash.h \
