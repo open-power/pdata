@@ -35,7 +35,6 @@ uint32_t atdb_header_read(struct atdb_context *atdb,
 	atdb_read_uint32(atdb, &header->dtree_index_size);
 	atdb_read_uint32(atdb, &header->attr_map_size);
 	atdb_read_uint32(atdb, &header->attr_value_size);
-	atdb_read_uint32(atdb, &header->dtree_fdt_size);
 
 	end = atdb_get_offset(atdb);
 
@@ -60,7 +59,6 @@ uint32_t atdb_header_write(struct atdb_context *atdb,
 	atdb_write_uint32(atdb, header->dtree_index_size);
 	atdb_write_uint32(atdb, header->attr_map_size);
 	atdb_write_uint32(atdb, header->attr_value_size);
-	atdb_write_uint32(atdb, header->dtree_fdt_size);
 
 	end = atdb_get_offset(atdb);
 
@@ -516,16 +514,6 @@ void *atdb_dtree_fdt_ptr(struct atdb_context *atdb)
 	offset = atdb_dtree_fdt_offset(atdb);
 
 	return atdb->ptr + offset;
-}
-
-void atdb_dtree_fdt_write(struct atdb_context *atdb, void *fdt, uint32_t length)
-{
-	void *ptr;
-
-	assert(length == atdb->header.dtree_fdt_size);
-
-	ptr = atdb_dtree_fdt_ptr(atdb);
-	memcpy(ptr, fdt, length);
 }
 
 void atdb_validate(struct atdb_context *atdb)

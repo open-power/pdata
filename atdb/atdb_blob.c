@@ -17,7 +17,6 @@ struct atdb_blob_info {
 struct atdb_blob_info *atdb_blob_open(const char *blob, bool allow_write)
 {
 	struct atdb_blob_info *binfo;
-	void *fdt;
 
 	binfo = (struct atdb_blob_info *)malloc(sizeof(struct atdb_blob_info));
 	if (!binfo)
@@ -40,8 +39,7 @@ struct atdb_blob_info *atdb_blob_open(const char *blob, bool allow_write)
 		goto fail;
 	}
 
-	fdt = atdb_dtree_fdt_ptr(binfo->atdb);
-	pdbg_targets_init(fdt);
+	pdbg_targets_init(NULL);
 
 	return binfo;
 
@@ -136,5 +134,4 @@ void atdb_blob_info(struct atdb_blob_info *binfo)
 	printf("  %8u  dtree_index_size\n", header.dtree_index_size);
 	printf("  %8u  attr_map_size\n", header.attr_map_size);
 	printf("  %8u  attr_value_size\n", header.attr_value_size);
-	printf("  %8u  dtree_fdt_size\n", header.dtree_fdt_size);
 }

@@ -18,7 +18,6 @@ struct atdb_header {
 	uint32_t dtree_index_size;
 	uint32_t attr_map_size;
 	uint32_t attr_value_size;
-	uint32_t dtree_fdt_size;
 };
 
 struct atdb_attr_index_entry {

@@ -38,8 +38,7 @@ uint32_t atdb_size(struct atdb_header *header)
 		header->attr_index_size +
 		header->dtree_index_size +
 		header->attr_map_size +
-		header->attr_value_size +
-		header->dtree_fdt_size;
+		header->attr_value_size;
 }
 
 void atdb_get_header(struct atdb_context *atdb, struct atdb_header *header)

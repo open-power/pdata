@@ -428,7 +428,6 @@ static void device_tree_set_target(struct attr_info *ainfo,
 }
 
 static void fill_atdb_header(struct attr_info *ainfo,
-			     struct mmap_file_context *mfile_dtb,
 			     struct dtree_context *dtree,
 			     const char *machine,
 			     struct atdb_header *header)
@@ -467,12 +466,10 @@ static void fill_atdb_header(struct attr_info *ainfo,
 
 	header->attr_map_size = map_size;
 	header->attr_value_size = value_size;
-	header->dtree_fdt_size = mmap_file_len(mfile_dtb);
 }
 
 static bool blob_write(const char *filename,
 		       struct attr_info *ainfo,
-		       struct mmap_file_context *mfile_dtb,
 		       struct dtree_context *dtree,
 		       const char *machine)
 {
@@ -486,7 +483,7 @@ static bool blob_write(const char *filename,
 	uint32_t size, offset;
 	int i;
 
-	fill_atdb_header(ainfo, mfile_dtb, dtree, machine, &header);
+	fill_atdb_header(ainfo, dtree, machine, &header);
 	size = atdb_size(&header);
 	printf("Blob size = %u\n", size);
 
@@ -611,18 +608,14 @@ static bool blob_write(const char *filename,
 		}
 	}
 
-	/* Device tree FDT */
-	atdb_dtree_fdt_write(atdb, mmap_file_ptr(mfile_dtb), mmap_file_len(mfile_dtb));
-
 	mmap_file_close(mfile);
 
 	return true;
 }
 
-static int do_create(const char *machine, const char *dtb, const char *infodb)
+static int do_create(const char *machine, const char *infodb)
 {
 	struct attr_info ainfo;
-	struct mmap_file_context *mfile;
 	struct dtree_context *dtree;
 	char path[1024];
 
@@ -632,21 +625,16 @@ static int do_create(const char *machine, const char *dtb, const char *infodb)
 		return 1;
 	}
 
-	mfile = mmap_file_open(dtb, false);
-	if (!mfile)
-		return 2;
-
-	dtree = dtree_init(mmap_file_ptr(mfile));
+	dtree = dtree_init(pdbg_default_dtb());
 	if (!dtree)
 		return 3;
 
 	device_tree_set_target(&ainfo, dtree);
 
-	if (!blob_write(path, &ainfo, mfile, dtree, machine))
+	if (!blob_write(path, &ainfo, dtree, machine))
 		return 4;
 
 	dtree_free(dtree);
-	mmap_file_close(mfile);
 
 	printf("Created %s\n", path);
 	return 0;
@@ -1107,7 +1095,7 @@ static int do_export(const char *blob, const char *infodb)
 	if (!binfo)
 		return 2;
 
-	dtree = dtree_init(atdb_dtree_fdt_ptr(atdb_blob_atdb(binfo)));
+	dtree = dtree_init(pdbg_default_dtb());
 	if (!dtree)
 		return 3;
 
@@ -1412,7 +1400,7 @@ static int do_import(const char *blob, const char *infodb, const char *dump)
 
 	atdb = atdb_blob_atdb(binfo);
 
-	dtree = dtree_init(atdb_dtree_fdt_ptr(atdb));
+	dtree = dtree_init(pdbg_default_dtb());
 	if (!dtree)
 		return 3;
 
@@ -1591,7 +1579,7 @@ static int do_tree(const char *blob)
 
 void usage(const char *prog)
 {
-	fprintf(stderr, "Usage: %s create <machine> <dtb> <infodb>\n", prog);
+	fprintf(stderr, "Usage: %s create <machine> <infodb>\n", prog);
 	fprintf(stderr, "       %s info <atdb>\n", prog);
 	fprintf(stderr, "       %s dump <atdb> [<target>]\n", prog);
 	fprintf(stderr, "       %s export <atdb> <infodb>\n", prog);
@@ -1611,10 +1599,10 @@ int main(int argc, const char **argv)
 	}
 
 	if (strcmp(argv[1], "create") == 0) {
-		if (argc != 5)
+		if (argc != 4)
 			usage(argv[0]);
 
-		ret = do_create(argv[2], argv[3], argv[4]);
+		ret = do_create(argv[2], argv[3]);
 
 	} else if (strcmp(argv[1], "info") == 0) {
 		if (argc != 3)
