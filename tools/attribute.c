@@ -31,7 +31,7 @@ struct {
 	{ ATTR_TYPE_INT8,   "int8" },
 	{ ATTR_TYPE_INT16,  "int16" },
 	{ ATTR_TYPE_INT32,  "int32" },
-	{ ATTR_TYPE_INT16,  "int64" },
+	{ ATTR_TYPE_INT64,  "int64" },
 	{ ATTR_TYPE_UNKNOWN, NULL },
 };
 
