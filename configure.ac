@@ -4,7 +4,7 @@ AM_SILENT_RULES([yes])
 
 case "$host" in
 	arm*-*-*) ARCH="arm" ;;
-	*) ARCH=$(arch) ;;
+	*) ARCH=$(uname -m) ;;
 esac
 AC_SUBST([ARCH])
 
