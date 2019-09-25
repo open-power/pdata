@@ -8,7 +8,7 @@ data_DATA = witherspoon.dtb
 endif
 EXTRA_PROGRAMS =
 
-noinst_LTLIBRARIES = libfdt-traverse.la
+noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
 lib_LTLIBRARIES = libfdt-prop.la
 
 nobase_include_HEADERS = fdt/fdt_prop.h
@@ -22,6 +22,24 @@ libfdt_traverse_la_SOURCES = \
 libfdt_prop_la_SOURCES = \
 	fdt/fdt_prop.c \
 	fdt/fdt_prop.h
+
+libdtm_la_SOURCES = \
+	ccan/build_assert/build_assert.h \
+	ccan/check_type/check_type.h \
+	ccan/container_of/container_of.h \
+	ccan/list/list.c \
+	ccan/list/list.h \
+	libdtm/dtm.c \
+	libdtm/dtm.h \
+	libdtm/dtm_internal.h \
+	libdtm/dtm_io.c \
+	libdtm/dtm_node.c \
+	libdtm/dtm_nodelist.c \
+	libdtm/dtm_property.c \
+	libdtm/dtm_search.c \
+	libdtm/dtm_traverse.c \
+	libdtm/dtm_tree.c
+libdtm_la_LIBADD = libfdt-traverse.la
 
 M4_V = $(M4_V_$(V))
 M4_V_ = $(M4_V_$(AM_DEFAULT_VERBOSITY))
