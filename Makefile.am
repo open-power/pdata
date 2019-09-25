@@ -4,9 +4,11 @@ AM_MAKEFLAGS = --no-print-directory
 AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 
 if BUILD_TOOLS
+bin_PROGRAMS = attributes
 data_DATA = witherspoon.dtb
+check_PROGRAMS = attribute_format_test
 endif
-EXTRA_PROGRAMS =
+EXTRA_PROGRAMS = attributes
 
 noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
 lib_LTLIBRARIES = libfdt-prop.la
@@ -40,6 +42,25 @@ libdtm_la_SOURCES = \
 	libdtm/dtm_traverse.c \
 	libdtm/dtm_tree.c
 libdtm_la_LIBADD = libfdt-traverse.la
+
+attributes_SOURCES = \
+	attribute/attribute.c \
+	attribute/attribute.h \
+	attribute/attribute_db.c \
+	attribute/attribute_db.h \
+	attribute/attribute_format.c \
+	attribute/attribute_format.h \
+	attribute/attribute_target.c \
+	attribute/attribute_target.h \
+	attribute/attribute_util.c \
+	attribute/attribute_util.h
+attributes_LDADD = libdtm.la
+attributes_LDFLAGS = -lm
+
+attribute_format_test_SOURCES = \
+	attribute/attribute_format_test.c \
+	attribute/attribute_format.c \
+	attribute/attribute_format.h
 
 M4_V = $(M4_V_$(V))
 M4_V_ = $(M4_V_$(AM_DEFAULT_VERBOSITY))
