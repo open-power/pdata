@@ -8,10 +8,20 @@ data_DATA = witherspoon.dtb
 endif
 EXTRA_PROGRAMS =
 
-noinst_LTLIBRARIES =
-lib_LTLIBRARIES =
+noinst_LTLIBRARIES = libfdt-traverse.la
+lib_LTLIBRARIES = libfdt-prop.la
 
-nobase_include_HEADERS =
+nobase_include_HEADERS = fdt/fdt_prop.h
+
+libfdt_traverse_la_SOURCES = \
+	fdt/fdt_error.c \
+	fdt/fdt_error.h \
+	fdt/fdt_traverse.c \
+	fdt/fdt_traverse.h
+
+libfdt_prop_la_SOURCES = \
+	fdt/fdt_prop.c \
+	fdt/fdt_prop.h
 
 M4_V = $(M4_V_$(V))
 M4_V_ = $(M4_V_$(AM_DEFAULT_VERBOSITY))
