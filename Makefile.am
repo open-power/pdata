@@ -5,7 +5,7 @@ AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 
 if BUILD_TOOLS
 bin_PROGRAMS = attributes
-data_DATA = witherspoon.dtb
+data_DATA = p9.dtb
 check_PROGRAMS = attribute_format_test
 endif
 EXTRA_PROGRAMS = attributes
@@ -62,16 +62,9 @@ attribute_format_test_SOURCES = \
 	attribute/attribute_format.c \
 	attribute/attribute_format.h
 
-M4_V = $(M4_V_$(V))
-M4_V_ = $(M4_V_$(AM_DEFAULT_VERBOSITY))
-M4_V_0 = @echo "  M4      " $@;
-
 DTC_V = $(DTC_V_$(V))
 DTC_V_ = $(DTC_V_$(AM_DEFAULT_VERBOSITY))
 DTC_V_0	= @echo "  DTC     " $@;
 
-%.dts: dts/%.dts.m4
-	$(M4_V)$(M4) -I$(srcdir)/dts $< | $(DTC) -I dts -O dts > $@
-
-%.dtb: %.dts
+%.dtb: dts/%.dts
 	$(DTC_V)$(DTC) -i$(dir $@) -I dts $< -O dtb > $@
