@@ -8,20 +8,10 @@ data_DATA = witherspoon.dtb
 endif
 EXTRA_PROGRAMS =
 
-noinst_LTLIBRARIES = libcommon.la
+noinst_LTLIBRARIES =
 lib_LTLIBRARIES =
 
 nobase_include_HEADERS =
-
-libcommon_la_SOURCES = \
-	ccan/build_assert/build_assert.h \
-	ccan/hash/hash.h \
-	ccan/hash/hash.c \
-	common/dlinklist.h \
-	common/dtree.c \
-	common/dtree.h \
-	common/mmap_file.c \
-	common/mmap_file.h
 
 M4_V = $(M4_V_$(V))
 M4_V_ = $(M4_V_$(AM_DEFAULT_VERBOSITY))
