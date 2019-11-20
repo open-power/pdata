@@ -26,12 +26,6 @@ AC_PROG_LIBTOOL
 
 if test x"$ARCH" != "xarm" ; then
 
-AC_PATH_PROG([M4], [m4])
-if test x"$ac_cv_path_M4" = "x" ; then
-	AC_MSG_ERROR([Command 'm4' not found.])
-fi
-AC_SUBST([M4])
-
 AC_PATH_PROG([DTC], [dtc])
 if test x"$ac_cv_path_DTC" = x ; then
 	AC_MSG_ERROR([Command 'dtc' not found.])
