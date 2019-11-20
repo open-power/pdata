@@ -4,10 +4,9 @@ AM_MAKEFLAGS = --no-print-directory
 AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 
 if BUILD_TOOLS
-bin_PROGRAMS = attributes
 data_DATA = witherspoon.dtb
 endif
-EXTRA_PROGRAMS = attributes
+EXTRA_PROGRAMS =
 
 noinst_LTLIBRARIES = libcommon.la
 lib_LTLIBRARIES = libatdb.la
@@ -33,13 +32,6 @@ libatdb_la_SOURCES = \
 	atdb/atdb_io.h \
 	atdb/atdb_lowlevel.c
 libatdb_la_LIBADD = libcommon.la
-
-attributes_SOURCES = \
-	tools/attribute.c \
-	tools/attribute.h \
-	tools/translate.c \
-	tools/translate.h
-attributes_LDADD = libatdb.la
 
 M4_V = $(M4_V_$(V))
 M4_V_ = $(M4_V_$(AM_DEFAULT_VERBOSITY))
