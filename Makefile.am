@@ -9,9 +9,9 @@ endif
 EXTRA_PROGRAMS =
 
 noinst_LTLIBRARIES = libcommon.la
-lib_LTLIBRARIES = libatdb.la
+lib_LTLIBRARIES =
 
-nobase_include_HEADERS = atdb/atdb.h atdb/atdb_blob.h
+nobase_include_HEADERS =
 
 libcommon_la_SOURCES = \
 	ccan/build_assert/build_assert.h \
@@ -22,16 +22,6 @@ libcommon_la_SOURCES = \
 	common/dtree.h \
 	common/mmap_file.c \
 	common/mmap_file.h
-
-libatdb_la_SOURCES = \
-	atdb/atdb.c \
-	atdb/atdb.h \
-	atdb/atdb_blob.c \
-	atdb/atdb_blob.h \
-	atdb/atdb_io.c \
-	atdb/atdb_io.h \
-	atdb/atdb_lowlevel.c
-libatdb_la_LIBADD = libcommon.la
 
 M4_V = $(M4_V_$(V))
 M4_V_ = $(M4_V_$(AM_DEFAULT_VERBOSITY))
