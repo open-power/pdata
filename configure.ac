@@ -45,12 +45,6 @@ if test x"$ac_cv_lib_pdbg_pdbg_targets_init" != "xyes" ; then
 	AC_MSG_ERROR([PDBG library not found])
 fi
 
-if test x"$ARCH" != "xarm" ; then
-	AC_CHECK_LIB([gdbm], [gdbm_open])
-	if test x"$ac_cv_lib_gdbm_gdbm_open" != "xyes" ; then
-		AC_MSG_ERROR([GDBM library not found])
-	fi
-fi
 AM_CONDITIONAL([BUILD_TOOLS], [test x"$ARCH" != "xarm"])
 
 AC_CONFIG_MACRO_DIR([m4])
