@@ -205,7 +205,7 @@ static bool attr_db_read_attr(FILE *fp, struct attr_info *info)
 		attr->defined = (defined == 1);
 
 		/* Special case of instance attribute ATTR_PG */
-		if (!strcmp(attr->name, "ATTR_PG"))
+		if (0 && !strcmp(attr->name, "ATTR_PG"))
 			count = NUM_CHIPLETS;
 		else
 			count = attr->size;
