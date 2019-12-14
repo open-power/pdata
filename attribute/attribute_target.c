@@ -61,6 +61,10 @@ struct {
 	{ "TARGET_TYPE_SBE", "sbe", "sbe" },
 	{ "TARGET_TYPE_SYSTEM", "root", "system" },
 	{ "TARGET_TYPE_XBUS", "xbus", "xbus" },
+	{ "TARGET_TYPE_IOHS", "iohs", "iohs" },
+        { "TARGET_TYPE_NMMU", "nmmu", "nmmu" },
+        { "TARGET_TYPE_PAUC", "pauc", "pauc" },
+        { "TARGET_TYPE_PAU", "pau", "pau" },
 	{ NULL, NULL, NULL },
 };
 
