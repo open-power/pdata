@@ -11,9 +11,11 @@ endif
 EXTRA_PROGRAMS = attributes
 
 noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
-lib_LTLIBRARIES = libfdt-prop.la
+lib_LTLIBRARIES = libfdt-prop.la libattribute-format.la
 
-nobase_include_HEADERS = fdt/fdt_prop.h
+nobase_include_HEADERS = fdt/fdt_prop.h \
+			 attribute/attribute.h \
+			 attribute/attribute_format.h
 
 libfdt_traverse_la_SOURCES = \
 	fdt/fdt_error.c \
@@ -43,24 +45,25 @@ libdtm_la_SOURCES = \
 	libdtm/dtm_tree.c
 libdtm_la_LIBADD = libfdt-traverse.la
 
+libattribute_format_la_SOURCES = \
+	attribute/attribute_format.c \
+	attribute/attribute_format.h
+
 attributes_SOURCES = \
 	attribute/attribute.c \
 	attribute/attribute.h \
 	attribute/attribute_db.c \
 	attribute/attribute_db.h \
-	attribute/attribute_format.c \
-	attribute/attribute_format.h \
 	attribute/attribute_target.c \
 	attribute/attribute_target.h \
 	attribute/attribute_util.c \
 	attribute/attribute_util.h
-attributes_LDADD = libdtm.la
+attributes_LDADD = libdtm.la libattribute-format.la
 attributes_LDFLAGS = -lm
 
 attribute_format_test_SOURCES = \
 	attribute/attribute_format_test.c \
-	attribute/attribute_format.c \
-	attribute/attribute_format.h
+attribute_format_test_LDADD = libattribute-format.la
 
 DTC_V = $(DTC_V_$(V))
 DTC_V_ = $(DTC_V_$(AM_DEFAULT_VERBOSITY))
