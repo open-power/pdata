@@ -55,7 +55,7 @@ attributes_SOURCES = \
 	attribute/attribute_target.h \
 	attribute/attribute_util.c \
 	attribute/attribute_util.h
-attributes_LDADD = libdtm.la libattribute-format.la
+attributes_LDADD = libdtm.la libattribute-api.la
 attributes_LDFLAGS = -lm
 
 attribute_format_test_SOURCES = \
