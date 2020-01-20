@@ -11,10 +11,9 @@ endif
 EXTRA_PROGRAMS = attributes
 
 noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
-lib_LTLIBRARIES = libfdt-prop.la libattribute-api.la
+lib_LTLIBRARIES = libattribute-api.la
 
-nobase_include_HEADERS = fdt/fdt_prop.h \
-			 attribute/attribute.h \
+nobase_include_HEADERS = attribute/attribute.h \
 			 attribute/attribute_api.h
 
 libfdt_traverse_la_SOURCES = \
@@ -22,10 +21,6 @@ libfdt_traverse_la_SOURCES = \
 	fdt/fdt_error.h \
 	fdt/fdt_traverse.c \
 	fdt/fdt_traverse.h
-
-libfdt_prop_la_SOURCES = \
-	fdt/fdt_prop.c \
-	fdt/fdt_prop.h
 
 libdtm_la_SOURCES = \
 	ccan/build_assert/build_assert.h \
