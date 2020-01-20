@@ -11,11 +11,11 @@ endif
 EXTRA_PROGRAMS = attributes
 
 noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
-lib_LTLIBRARIES = libfdt-prop.la libattribute-format.la
+lib_LTLIBRARIES = libfdt-prop.la libattribute-api.la
 
 nobase_include_HEADERS = fdt/fdt_prop.h \
 			 attribute/attribute.h \
-			 attribute/attribute_format.h
+			 attribute/attribute_api.h
 
 libfdt_traverse_la_SOURCES = \
 	fdt/fdt_error.c \
@@ -45,9 +45,11 @@ libdtm_la_SOURCES = \
 	libdtm/dtm_tree.c
 libdtm_la_LIBADD = libfdt-traverse.la
 
-libattribute_format_la_SOURCES = \
+libattribute_api_la_SOURCES = \
 	attribute/attribute_format.c \
-	attribute/attribute_format.h
+	attribute/attribute_format.h \
+	attribute/attribute_api.c \
+	attribute/attribute_api.h
 
 attributes_SOURCES = \
 	attribute/attribute.c \
@@ -63,7 +65,7 @@ attributes_LDFLAGS = -lm
 
 attribute_format_test_SOURCES = \
 	attribute/attribute_format_test.c \
-attribute_format_test_LDADD = libattribute-format.la
+attribute_format_test_LDADD = libattribute-api.la
 
 DTC_V = $(DTC_V_$(V))
 DTC_V_ = $(DTC_V_$(AM_DEFAULT_VERBOSITY))
