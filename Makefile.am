@@ -64,7 +64,7 @@ attributes_LDADD = libdtm.la libattribute-format.la
 attributes_LDFLAGS = -lm
 
 attribute_format_test_SOURCES = \
-	attribute/attribute_format_test.c \
+	attribute/attribute_format_test.c
 attribute_format_test_LDADD = libattribute-api.la
 
 DTC_V = $(DTC_V_$(V))
