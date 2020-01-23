@@ -73,6 +73,7 @@ int attr_write(struct pdbg_target *target, const char *name,
 		return EMSGSIZE;
 
 	attr.value = value;
+	attr.defined = true;
 
 	attr_encode(&attr, &buf, &len);
 	buflen = len;

@@ -761,6 +761,8 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 		ptr[index] = val;
 	}
 
+	attr.defined = true;
+
 	attr_encode(&attr, &buf, &buflen);
 	dtm_prop_set_value(prop, buf, buflen);
 	free(buf);
