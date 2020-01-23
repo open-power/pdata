@@ -41,6 +41,11 @@ int attr_read(struct pdbg_target *target, const char *name,
 		return EMSGSIZE;
 	}
 
+	if (!attr.defined) {
+		free(attr.value);
+		return EINVAL;
+	}
+
 	memcpy(value, attr.value, value_len);
 	free(attr.value);
 
