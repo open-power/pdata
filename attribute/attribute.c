@@ -859,6 +859,92 @@ static int do_import(const char *dtb, const char *infodb, const char *dump_file)
 	return 0;
 }
 
+static int do_read(const char *dtb, const char *target, const char *name)
+{
+	struct dtm_file *dfile;
+	struct dtm_node *root, *node;
+	struct dtm_property *prop;
+	const void *val;
+	struct attr attr;
+	int len, i;
+
+	dfile = dtm_file_open(dtb);
+	if (!dfile)
+		return 1;
+
+	root = dtm_file_read(dfile);
+	dtm_file_close(dfile);
+	if (!root)
+		return 1;
+
+	if (target[0] == '/') {
+		node = dtm_find_node_by_path(root, target);
+		if (!node) {
+			fprintf(stderr, "No such target %s\n", target);
+			return 2;
+		}
+	} else {
+		node = from_cronus_target(root, target);
+		if (!node) {
+			fprintf(stderr, "Failed to translate %s\n", target);
+			return 2;
+		}
+	}
+
+	prop = dtm_node_get_property(node, name);
+	if (!prop) {
+		fprintf(stderr, "No such attribute %s\n", name);
+		return 3;
+	}
+
+	val = dtm_prop_value(prop, &len);
+	attr_decode(&attr, (const uint8_t *)val, len);
+
+	printf("%s", name);
+	if (attr.dim_count > 0) {
+		printf("<");
+		printf("%d", attr.dim[0]);
+		for (i=1; i<attr.dim_count; i++)
+			printf(",%d", attr.dim[i]);
+		printf(">");
+	}
+
+	printf(" = ");
+
+	if (!attr.defined) {
+		printf("UNDEFINED\n");
+		return 0;
+	}
+
+	if (attr.data_size == 1) {
+		uint8_t *ptr = (uint8_t *)attr.value;
+
+		for (i=0; i<attr.size; i++)
+			printf("0x%02x ", ptr[i]);
+
+	} else if (attr.data_size == 2) {
+		uint16_t *ptr = (uint16_t *)attr.value;
+
+		for (i=0; i<attr.size; i++)
+			printf("0x%04x ", ptr[i]);
+
+	} else if (attr.data_size == 4) {
+		uint32_t *ptr = (uint32_t *)attr.value;
+
+		for (i=0; i<attr.size; i++)
+			printf("0x%08x ", ptr[i]);
+
+	} else if (attr.data_size == 8) {
+		uint64_t *ptr = (uint64_t *)attr.value;
+
+		for (i=0; i<attr.size; i++)
+			printf("0x%16"PRIx64" ", ptr[i]);
+	}
+	printf("\n");
+
+	return 0;
+}
+
 static int do_translate(const char *dtb, const char *target)
 {
 	struct dtm_file *dfile;
@@ -908,6 +994,7 @@ static void usage(const char *prog)
 	fprintf(stderr, "       %s dump <dtb> [<target>]\n", prog);
 	fprintf(stderr, "       %s export <dtb> <infodb>\n", prog);
 	fprintf(stderr, "       %s import <dtb> <infodb> <attr-dump>\n", prog);
+	fprintf(stderr, "       %s read <dtb> <target> <attriute>\n", prog);
 	fprintf(stderr, "       %s translate <dtb> <target>\n", prog);
 	exit(1);
 }
@@ -945,6 +1032,12 @@ int main(int argc, const char **argv)
 			usage(argv[0]);
 
 		ret = do_import(argv[2], argv[3], argv[4]);
+
+	} else if (strcmp(argv[1], "read") == 0) {
+		if (argc != 5)
+			usage(argv[0]);
+
+		ret = do_read(argv[2], argv[3], argv[4]);
 
 	} else if (strcmp(argv[1], "translate") == 0) {
 		if (argc != 4)
