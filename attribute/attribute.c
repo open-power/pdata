@@ -19,6 +19,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include "libdtm/dtm.h"
 
@@ -988,6 +989,93 @@ static int do_translate(const char *dtb, const char *target)
 	return 0;
 }
 
+static int do_write(const char *dtb, const char *target, const char *name,
+		    const char **argv, int argc)
+{
+	struct dtm_file *dfile;
+	struct dtm_node *root, *node;
+	struct dtm_property *prop;
+	const void *val;
+	uint8_t *buf;
+	struct attr attr;
+	int len, i, ret;
+
+	dfile = dtm_file_open(dtb);
+	if (!dfile)
+		return 1;
+
+	root = dtm_file_read(dfile);
+	dtm_file_close(dfile);
+	if (!root)
+		return 1;
+
+	if (target[0] == '/') {
+		node = dtm_find_node_by_path(root, target);
+		if (!node) {
+			fprintf(stderr, "No such target %s\n", target);
+			return 2;
+		}
+	} else {
+		node = from_cronus_target(root, target);
+		if (!node) {
+			fprintf(stderr, "Failed to translate %s\n", target);
+			return 2;
+		}
+	}
+
+	prop = dtm_node_get_property(node, name);
+	if (!prop) {
+		fprintf(stderr, "No such attribute %s\n", name);
+		return 3;
+	}
+
+	val = dtm_prop_value(prop, &len);
+	attr_decode(&attr, (const uint8_t *)val, len);
+
+	if (argc != attr.size) {
+		fprintf(stderr, "Insufficient values %d, expected %d\n", argc, attr.size);
+		return 4;
+	}
+
+	for (i=0; i<attr.size; i++) {
+		unsigned long long data;
+
+		data = strtoull(argv[i], NULL, 0);
+
+		if (attr.data_size == 1) {
+			attr.value[i] = data & 0xff;
+		} else if (attr.data_size == 2) {
+			((uint16_t *)attr.value)[i] = data & 0xffff;
+		} else if (attr.data_size == 4) {
+			((uint32_t *)attr.value)[i] = data & 0xffffffff;
+		} else if (attr.data_size == 8) {
+			((uint64_t *)attr.value)[i] = data;
+		}
+	}
+
+	attr.defined = true;
+
+	attr_encode(&attr, &buf, &len);
+	dtm_prop_set_value(prop, buf, len);
+	free(buf);
+
+	ret = rename(dtb, "old.dtb");
+	if (ret != 0)
+		fprintf(stderr, "Failed to rename %s to old.dtb\n", dtb);
+
+	dfile = dtm_file_create(dtb);
+	if (!dfile)
+		return 5;
+
+	if (!dtm_file_write(dfile, root))
+		return 6;
+
+	dtm_file_close(dfile);
+
+	unlink("old.dtb");
+	return 0;
+}
+
 static void usage(const char *prog)
 {
 	fprintf(stderr, "Usage: %s create <dtb> <infodb> <out-dtb>\n", prog);
@@ -996,6 +1084,7 @@ static void usage(const char *prog)
 	fprintf(stderr, "       %s import <dtb> <infodb> <attr-dump>\n", prog);
 	fprintf(stderr, "       %s read <dtb> <target> <attriute>\n", prog);
 	fprintf(stderr, "       %s translate <dtb> <target>\n", prog);
+	fprintf(stderr, "       %s write <dtb> <target> <attriute> <value>\n", prog);
 	exit(1);
 }
 
@@ -1044,6 +1133,12 @@ int main(int argc, const char **argv)
 			usage(argv[0]);
 
 		ret = do_translate(argv[2], argv[3]);
+
+	} else if (strcmp(argv[1], "write") == 0) {
+		if (argc < 6)
+			usage(argv[0]);
+
+		ret = do_write(argv[2], argv[3], argv[4], &argv[5], argc-5);
 
 	} else {
 		usage(argv[0]);
