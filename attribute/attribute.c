@@ -748,17 +748,17 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 	} else if (attr.data_size == 2) {
 		uint16_t *ptr = (uint16_t *)attr.value;
 		uint16_t val = value;
-		ptr[index] = htobe16(val);
+		ptr[index] = val;
 
 	} else if (attr.data_size == 4) {
 		uint32_t *ptr = (uint32_t *)attr.value;
 		uint32_t val = value;
-		ptr[index] = htobe32(val);
+		ptr[index] = val;
 
 	} else if (attr.data_size == 8) {
 		uint64_t *ptr = (uint64_t *)attr.value;
 		uint64_t val = value;
-		ptr[index] = htobe64(val);
+		ptr[index] = val;
 	}
 
 	attr_encode(&attr, &buf, &buflen);

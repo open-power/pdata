@@ -116,13 +116,13 @@ static void attr_set_value(char *tok, enum attr_type type, uint8_t *ptr)
 		uint8_t value = data & 0xff;
 		memcpy(ptr, &value, 1);
 	} else if (type == ATTR_TYPE_UINT16 || type == ATTR_TYPE_INT16) {
-		uint16_t value = htobe16(data & 0xffff);
+		uint16_t value = data & 0xffff;
 		memcpy(ptr, &value, 2);
 	} else if (type == ATTR_TYPE_UINT32 || type == ATTR_TYPE_INT32) {
-		uint32_t value = htobe32(data & 0xffffffff);
+		uint32_t value = data & 0xffffffff;
 		memcpy(ptr, &value, 4);
 	} else if (type == ATTR_TYPE_UINT64 || type == ATTR_TYPE_INT64) {
-		uint64_t value = htobe64(data);
+		uint64_t value = data;
 		memcpy(ptr, &value, 8);
 	}
 }

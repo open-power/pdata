@@ -121,7 +121,30 @@ void attr_encode(struct attr *attr, uint8_t **out, int *outlen)
 	}
 
 	/* data bytes */
-	memcpy(buf + offset, attr->value, attr->size * attr->data_size);
+	if (attr->data_size == 1) {
+		memcpy(buf + offset, attr->value, attr->size * attr->data_size);
+
+	} else if (attr->data_size == 2) {
+		uint16_t *b = (uint16_t *)(buf + offset);
+		uint16_t *v = (uint16_t *)attr->value;
+
+		for (i=0; i<attr->size; i++)
+			b[i] = htobe16(v[i]);
+
+	} else if (attr->data_size == 4) {
+		uint32_t *b = (uint32_t *)(buf + offset);
+		uint32_t *v = (uint32_t *)attr->value;
+
+		for (i=0; i<attr->size; i++)
+			b[i] = htobe32(v[i]);
+
+	} else if (attr->data_size == 8) {
+		uint64_t *b = (uint64_t *)(buf + offset);
+		uint64_t *v = (uint64_t *)attr->value;
+
+		for (i=0; i<attr->size; i++)
+			b[i] = htobe64(v[i]);
+	}
 
 	*out = buf;
 	*outlen = buflen;
@@ -131,6 +154,7 @@ void attr_decode(struct attr *attr, const uint8_t *buf, int buflen)
 {
 	uint32_t header, offset = 0;
 	uint8_t size, flag;
+	int i;
 
 	/* header word */
 	assert(buflen >= 4);
@@ -150,8 +174,6 @@ void attr_decode(struct attr *attr, const uint8_t *buf, int buflen)
 
 	attr->size = 1;
 	if (attr->dim_count > 0) {
-		int i;
-
 		attr->dim = malloc(attr->dim_count * sizeof(int));
 		assert(attr->dim);
 
@@ -170,5 +192,30 @@ void attr_decode(struct attr *attr, const uint8_t *buf, int buflen)
 	assert(attr->value);
 
 	assert(buflen - offset == attr->size * attr->data_size);
-	memcpy(attr->value, buf+offset, buflen-offset);
+
+	/* data bytes */
+	if (attr->data_size == 1) {
+		memcpy(attr->value, buf + offset, buflen - offset);
+
+	} else if (attr->data_size == 2) {
+		uint16_t *b = (uint16_t *)(buf + offset);
+		uint16_t *v = (uint16_t *)attr->value;
+
+		for (i=0; i<attr->size; i++)
+			v[i] = be16toh(b[i]);
+
+	} else if (attr->data_size == 4) {
+		uint32_t *b = (uint32_t *)(buf + offset);
+		uint32_t *v = (uint32_t *)attr->value;
+
+		for (i=0; i<attr->size; i++)
+			v[i] = be32toh(b[i]);
+
+	} else if (attr->data_size == 8) {
+		uint64_t *b = (uint64_t *)(buf + offset);
+		uint64_t *v = (uint64_t *)attr->value;
+
+		for (i=0; i<attr->size; i++)
+			v[i] = htobe64(b[i]);
+	}
 }
