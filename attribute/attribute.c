@@ -677,7 +677,7 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 	}
 
 	cbuf = dtm_prop_value(prop, &buflen);
-	if (!buf) {
+	if (!cbuf) {
 		fprintf(stderr, "  %s: failed to read value\n", attr_name);
 		return false;
 	}
@@ -1090,7 +1090,7 @@ static void usage(const char *prog)
 
 int main(int argc, const char **argv)
 {
-	int ret;
+	int ret = -1;
 
 	if (argc < 2)
 		usage(argv[0]);
