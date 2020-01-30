@@ -27,7 +27,8 @@
  * the actual value of the attribute.  This allows correctly handling data
  * endian.
  *
- * The attribute api is based on libpdbg library.
+ * The attribute api is based on libpdbg library.  Before using this api,
+ * libpdbg must be initialized using pdbg_targets_init().
  *
  */
 #include <libpdbg.h>
