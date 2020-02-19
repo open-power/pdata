@@ -19,6 +19,7 @@
 #include <string.h>
 #include <math.h>
 #include <assert.h>
+#include <endian.h>
 
 #include "attribute.h"
 #include "attribute_db.h"
