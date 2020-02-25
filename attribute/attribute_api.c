@@ -36,7 +36,7 @@ int attr_read(struct pdbg_target *target, const char *name,
 
 	attr_decode(&attr, cbuf, buflen);
 
-	if ((unsigned int)attr.size != value_len) {
+	if ((unsigned int)(attr.size * attr.data_size) != value_len) {
 		free(attr.value);
 		return EMSGSIZE;
 	}
@@ -69,7 +69,7 @@ int attr_write(struct pdbg_target *target, const char *name,
 	attr_decode(&attr, cbuf, buflen);
 	free(attr.value);
 
-	if ((unsigned int)attr.size != value_len)
+	if ((unsigned int)(attr.size * attr.data_size) != value_len)
 		return EMSGSIZE;
 
 	attr.value = value;
