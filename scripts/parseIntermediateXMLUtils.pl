@@ -406,5 +406,215 @@ sub parseEnumerationTypes
     }
 }
 
+# Preparing struct type for MRW targets
+
+struct MRWTarget => {
+    targetType          => '$',
+    targetAttrList      => '%',
+};
+
+# Preparing struct type for FAPI targets
+
+struct FAPITarget => {
+    targetParent        => '$',
+    targetAttrList      => '%',
+};
+
+# Preparing struct type for Targets attribute data
+struct AttributeData => {
+    valueDataType          => '$',
+    value                  => '$',
+    complexFieldValues     => '%',
+};
+
+sub getTargetsData
+{
+    my $inXMLFile = $_[0];
+    my $filterFile = $_[1];
+
+    my $inXMLData = XML::LibXML->load_xml(location => $inXMLFile);
+
+    my %mrwTargetList;
+    my %fapiTargetList;
+
+    if( $filterFile ne "" )
+    {
+        my %reqTgtsList = getRequiredTgts($filterFile);
+
+        foreach my $rTgt ( sort ( keys %reqTgtsList) )
+        {
+            # Parse MRW Targets
+            my $mrwTgtPath = '/attributes/targetInstance/type[text()=\''.$rTgt.'\']/ancestor::targetInstance';
+            my $mrwTgtData = $inXMLData->findnodes($mrwTgtPath);
+
+            if ( $mrwTgtData->size() > 0 )
+            {
+                foreach my $MRWTargetData ($mrwTgtData->get_nodelist)
+                {
+                    @ret = parseMRWTargetsData($MRWTargetData);
+                    $mrwTargetList{$ret[0]} = $ret[1];
+                }
+            }
+            else
+            {
+                print "CRITICAL: Required MRW target $rTgt data is not found in xml\n" if isVerboseReq('C');
+            }
+
+            # Parse FAPI Targets
+            my $fapiTgtPath = '/attributes/targetType/id[text()=\''.$rTgt.'\']/ancestor::targetType';
+            my $fapiTgtData = $inXMLData->findnodes($fapiTgtPath);
+            if ($fapiTgtData->size() > 0 )
+            {
+                foreach my $FAPITargetData ($fapiTgtData->get_nodelist)
+                {
+                    my @ret = parseFAPITargetsData($FAPITargetData);
+                    $fapiTargetList{$ret[0]} = $ret[1];
+                }
+            }
+        }
+    }
+    else # Parse all MRW and FAPI targets from xml if required targets list doesn't given
+    {
+        my $mrwTgtPath = '/attributes/targetInstance';
+        foreach my $mrwTgtData ( $inXMLData->findnodes($mrwTgtPath) )
+        {
+            @ret = parseMRWTargetsData($mrwTgtData);
+            $mrwTargetList{$ret[0]} = $ret[1];
+        }
+
+        my $fapiTgtPath = '/attributes/targetType';
+        foreach my $fapiTgtData ( $inXMLData->findnodes($fapiTgtPath) )
+        {
+            my @ret = parseFAPITargetsData($fapiTgtData);
+            $fapiTargetList{$ret[0]} = $ret[1];
+        }
+    }
+
+    return (\%mrwTargetList, \%fapiTargetList);
+}
+
+sub parseMRWTargetsData
+{
+    my $MRWTargetData = $_[0];
+
+    my $MRWTargetID = $MRWTargetData->findvalue('id');
+    if( $MRWTargetID eq "")
+    {
+        print "CRITICAL: Target \"id\" is missing for MRW target in xml\n" if isVerboseReq('C');
+        last;
+    }
+
+    my $mrwTarget = MRWTarget->new();
+    $mrwTarget->targetType($MRWTargetData->findvalue('type'));
+    if( $mrwTarget->targetType eq "")
+    {
+        print "CRITICAL: Target \"type\" is missing for MRW target: $MRWTargetID in xml\n" if isVerboseReq('C');
+        last;
+    }
+
+    foreach my $MRWTargetAttrData ($MRWTargetData->findnodes('attribute'))
+    {
+        my $AttrID = $MRWTargetAttrData->findvalue('id');
+        if( $AttrID eq "")
+        {
+            print "ERROR: Attribute \"id\" is missing for MRW target: $MRWTargetID in xml\n";
+            next;
+        }
+
+        my $attributeData = AttributeData->new();
+        if( $MRWTargetAttrData->exists('default/field') ) # Complex type attribute
+        {
+            $attributeData->valueDataType("complexType");
+            foreach my $field ( $MRWTargetAttrData->findnodes('default/field'))
+            {
+                my $fieldID = $field->findvalue('id');
+                if( $fieldID eq "")
+                {
+                    print "CRITICAL: Field \"id\" is missing for complex attribute $AttrID for MRW target: $MRWTargetID in xml\n" if isVerboseReq('C');
+                    next;
+                }
+
+                my $fieldValue = $field->findvalue('value');
+                if( $fieldValue eq "")
+                {
+                    print "WARNING: Field \"value\" is missing to field id: $fieldID for attribute: $AttrID of MRW target: $MRWTargetID in xml\n" if isVerboseReq('W');
+                }
+                ${$attributeData->complexFieldValues}{$fieldID} = $fieldValue;
+            }
+            ${$mrwTarget->targetAttrList}{$AttrID} = $attributeData;
+        }
+        else
+        {
+            $attributeData->valueDataType("simpleType");
+            $attributeData->value($MRWTargetAttrData->findvalue('default'));
+            ${$mrwTarget->targetAttrList}{$AttrID} = $attributeData;
+        }
+    }
+
+    return ( $MRWTargetID, $mrwTarget);
+}
+
+sub parseFAPITargetsData
+{
+    my $FAPITargetData = $_[0];
+
+    my $FAPITargetID = $FAPITargetData->findvalue('id');
+    if( $FAPITargetID eq "")
+    {
+        print "CRITICAL: FAPI target \"id\" is missing in xml\n" if isVerboseReq('C');
+        last;
+    }
+    my $fapiTarget = FAPITarget->new();
+
+    $fapiTarget->targetParent($FAPITargetData->findvalue('parent'));
+    if( $fapiTarget->targetParent eq "" and $FAPITargetID ne "base")
+    {
+        print "ERROR: Parent \"value\" is missing for FAPI target: $FAPITargetID in xml\n" if isVerboseReq('E');
+        # TODO: Need uncomment below line once common plats xml used. To add fapi targets commenting because plat specific xml doesn't contains all targets, so parent tag may not present for fapi targets which is not in plat xml.
+        #last;
+    }
+
+    foreach my $FAPITargetAttrData ($FAPITargetData->findnodes('attribute'))
+    {
+        my $AttrID = $FAPITargetAttrData->findvalue('id');
+        if( $AttrID eq "")
+        {
+            print "ERROR: Attribute \"id\" is missing for FAPI target: $FAPITargetID in xml\n" if isVerboseReq('E');
+            next;
+        }
+
+        my $attributeData = AttributeData->new();
+        if( $FAPITargetAttrData->exists('default/field') ) # Complex type attribute
+        {
+            $attributeData->valueDataType("complexType");
+            foreach my $field ( $FAPITargetAttrData->findnodes('default/field'))
+            {
+                my $fieldID = $field->findvalue('id');
+                if( $fieldID eq "")
+                {
+                    print "ERROR: Field \"id\" is missing for attribute: $AttrID for FAPI target: $FAPITargetID in xml\n" if isVerboseReq('E');
+                    next;
+                }
+
+                my $fieldValue = $field->findvalue('value');
+                if( $fieldValue eq "")
+                {
+                    print "WARNING: Field \"value\" is missing to field id: $fieldID for attribute: $AttrID of FAPI target: $FAPITargetID in xml\n" if isVerboseReq('W');
+                }
+                ${$attributeData->complexFieldValues}{$fieldID} = $fieldValue;
+            }
+            ${$fapiTarget->targetAttrList}{$AttrID} = $attributeData;
+        }
+        else
+        {
+            $attributeData->valueDataType("simpleType");
+            $attributeData->value($FAPITargetAttrData->findvalue('default'));
+            ${$fapiTarget->targetAttrList}{$AttrID} = $attributeData;
+        }
+    }
+
+    return ($FAPITargetID, $fapiTarget);
+}
+
 # need to return 1 for other modules to include this
 1;

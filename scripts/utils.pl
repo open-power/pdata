@@ -118,5 +118,29 @@ sub getReqAllAttrsFilterList
     return (%reqAttrsList);
 }
 
+sub getRequiredTgtsPdbgCompPropMapList
+{
+    my $pdbgCompProMapFile = $_[0];
+
+    open my $fd, $pdbgCompProMapFile or die "Could not open $pdbgCompProMapFile: \"$!\"";
+
+    my %reqPdbgMapList;
+    while ( my $line = <$fd> )
+    {
+        # skip comment line
+        if ( $line =~ m/#/ )
+        {
+            next;
+        }
+        chomp $line;
+        my @reqTgtsInfo = split( ':', $line );
+        $reqPdbgMapList{$reqTgtsInfo[0]} = $reqTgtsInfo[1];
+    }
+
+    close $fd;
+
+    return (%reqPdbgMapList);
+}
+
 # need to return 1 for other modules to include this
 1;
