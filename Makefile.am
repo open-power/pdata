@@ -7,6 +7,7 @@ if BUILD_TOOLS
 bin_PROGRAMS = attributes
 data_DATA = p9.dtb p10.dtb
 check_PROGRAMS = attribute_format_test
+CLEANFILES = p9.dtb p10.dtb
 endif
 EXTRA_PROGRAMS = attributes
 
