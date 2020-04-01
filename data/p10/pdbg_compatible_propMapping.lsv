@@ -1,0 +1,25 @@
+# Targets pdbg mapping info
+# Format : MRWTargetType:PdbgCompatiblePropValue
+unit-eq-power10:ibm,power9-eq
+unit-fc-power10:ibm,power9-fc
+unit-core-power10:ibm,power9-core
+unit-perv-power10:ibm,power9-chiplet
+unit-pauc-power10:ibm,power9-pauc
+unit-pec-power10:ibm,power9-pec
+unit-phb-power10:ibm,power9-phb
+unit-nmmu-power10:ibm,power9-nmmu
+unit-iohs-power10:ibm,power9-iohs
+unit-pau-power10:ibm,power9-pau
+unit-mc-power10:ibm,power9-mc
+unit-mi-power10:ibm,power9-mi
+chip-processor-power10:"ibm,power10-proc", "ibm,processor"
+unit-mcc-power10:ibm,power10-mcc
+unit-omic-power10:ibm,power10-omic
+unit-omi-power10:ibm,power10-omi
+chip-ocmb:ibm,power10-ocmb
+unit-mem_port:ibm,power10-memport
+lcard-dimm-ddimm:ibm,power10-dimm
+chip-bmc-ast2600:bmc-ast2600
+chip-vreg-generic:ibm,pmic-vreg
+unit-nx-power10:ibm,power10-nx
+unit-occ-power10:ibm,power10-occ
