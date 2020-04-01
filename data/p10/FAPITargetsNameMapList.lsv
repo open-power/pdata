@@ -1,0 +1,22 @@
+# Targets Name map list to translate from FAPI name into MRW name
+# Format:- FAPITargetName:MRWTargetName
+TARGET_TYPE_SYSTEM:sys-sys-power10
+TARGET_TYPE_PROC_CHIP:chip-processor-power10
+TARGET_TYPE_EQ:unit-eq-power10
+TARGET_TYPE_FC:unit-fc-power10
+TARGET_TYPE_CORE:unit-core-power10
+TARGET_TYPE_PERV:unit-perv-power10
+TARGET_TYPE_PAUC:unit-pauc-power10
+TARGET_TYPE_PEC:unit-pec-power10
+TARGET_TYPE_PHB:unit-phb-power10
+TARGET_TYPE_NMMU:unit-nmmu-power10
+TARGET_TYPE_IOHS:unit-iohs-power10
+TARGET_TYPE_PAU:unit-pau-power10
+TARGET_TYPE_MC:unit-mc-power10
+TARGET_TYPE_MI:unit-mi-power10
+TARGET_TYPE_MCC:unit-mcc-power10
+TARGET_TYPE_OMIC:unit-omic-power10
+TARGET_TYPE_OMI:unit-omi-power10
+TARGET_TYPE_OCMB_CHIP:chip-ocmb
+TARGET_TYPE_MEM_PORT:unit-mem_port
+TARGET_TYPE_DIMM:lcard-dimm-ddimm
