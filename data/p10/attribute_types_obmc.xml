@@ -1,0 +1,307 @@
+<attributes>
+    <enumerationType>
+        <description>Enum for FUSED_CORE_OPTION</description>
+        <enumerator>
+            <name>USING_DEFAULT_CORES</name>
+            <value>0</value>
+        </enumerator>
+        <enumerator>
+            <name>USING_NORMAL_CORES</name>
+            <value>1</value>
+        </enumerator>
+        <enumerator>
+            <name>USING_FUSED_CORES</name>
+            <value>2</value>
+        </enumerator>
+        <id>FUSED_CORE_OPTION</id>
+    </enumerationType>
+
+    <attribute>
+        <description>
+            If not loading PHYP or OPAL, then use this to
+            decide whether to use FUSED cores or NOT.
+        </description>
+        <id>FUSED_CORE_OPTION</id>
+        <persistency>volatile-zeroed</persistency>
+        <readable></readable>
+        <simpleType>
+            <enumeration>
+                <id>FUSED_CORE_OPTION</id>
+            </enumeration>
+            <uint8_t></uint8_t>
+        </simpleType>
+        <writeable></writeable>
+    </attribute>
+
+    <attribute>
+        <id>DISABLE_SECURITY</id>
+        <description>This attribute indicates the security status . Based on this
+            HWSV will update the BOOT_FLAGS attribute to disable the security. HWSV
+            will detect the IPL type and set the required bits in the BOOT_FLAGS
+        </description>
+        <simpleType>
+            <uint8_t>
+                <default>0</default>
+            </uint8_t>
+        </simpleType>
+        <persistency>semi-non-volatile</persistency>
+        <readable/>
+        <writeable/>
+        <bmcOnly/>
+    </attribute>
+
+    <attribute>
+        <complexType>
+            <description>struct - 4 booleans and a PLID</description>
+            <field>
+                <default>0</default>
+                <description>if this target was deconfigured,
+                    this will be a special DECONFIGURED_BY_ enum,
+                    OR it will be the errlog EID that caused it,
+                    either directly or by association,
+                </description>
+                <name>deconfiguredByEid</name>
+                <type>uint32_t</type>
+            </field>
+            <field>
+                <bits>1</bits>
+                <default>0</default>
+                <description>
+                    0b0: Target is not powered on (is off);
+                    0b1: Target is powered on;
+                </description>
+                <name>poweredOn</name>
+                <type>uint8_t</type>
+            </field>
+            <field>
+                <bits>1</bits>
+                <default>0</default>
+                <description>
+                    0b0: Target is not present in the system;
+                    0b1: Target is present in the system
+                </description>
+                <name>present</name>
+                <type>uint8_t</type>
+            </field>
+            <field>
+                <bits>1</bits>
+                <default>0</default>
+                <description>
+                    0b0: Target is not functional;
+                    0b1: Target is functional
+                </description>
+                <name>functional</name>
+                <type>uint8_t</type>
+            </field>
+            <field>
+                <bits>1</bits>
+                <default>0</default>
+                <description>FSP Only, used by DUMP applet;
+                    0b0: target is dump capabile;
+                    0b1: target is not dump capabile;
+                </description>
+                <name>dumpfunctional</name>
+                <type>uint8_t</type>
+            </field>
+            <field>
+                <bits>1</bits>
+                <default>0</default>
+                <description>Set for speculative deconfig;
+                    0b0: target not speculative deconfig;
+                    0b1: target is speculatively deconfigured;
+                </description>
+                <name>specdeconfig</name>
+                <type>uint8_t</type>
+            </field>
+        </complexType>
+        <description>HardWare Availability Service State Attribute.
+            Keeps track of Target values poweredOn, present, functional</description>
+        <id>HWAS_STATE</id>
+        <persistency>volatile</persistency>
+        <readable></readable>
+        <writeable></writeable>
+    </attribute>
+
+    <attribute>
+        <description>attribute indicating the chip's ID</description>
+        <id>CHIP_ID</id>
+        <persistency>volatile-zeroed</persistency>
+        <readable></readable>
+        <simpleType>
+            <uint32_t></uint32_t>
+        </simpleType>
+        <writeable></writeable>
+    </attribute>
+
+    <attribute>
+        <description>MRU ID attribute for chip/unit class</description>
+        <id>MRU_ID</id>
+        <no_export></no_export>
+        <persistency>non-volatile</persistency>
+        <readable></readable>
+        <simpleType>
+            <uint32_t>
+                <default>0x00</default>
+            </uint32_t>
+        </simpleType>
+    </attribute>
+
+    <enumerationType>
+        <default>NONE</default>
+        <description>
+            Enumeration specifying a target's CEC degraded mode domain
+        </description>
+        <enumerator>
+            <name>NONE</name>
+            <value>0</value>
+        </enumerator>
+        <enumerator>
+            <name>CPU</name>
+            <value>1</value>
+        </enumerator>
+        <enumerator>
+            <name>DIMM</name>
+            <value>2</value>
+        </enumerator>
+        <enumerator>
+            <name>FABRIC</name>
+            <value>3</value>
+        </enumerator>
+        <enumerator>
+            <name>MEM</name>
+            <value>4</value>
+        </enumerator>
+        <enumerator>
+            <name>IO</name>
+            <value>5</value>
+        </enumerator>
+        <enumerator>
+            <name>NODE</name>
+            <value>6</value>
+        </enumerator>
+        <enumerator>
+            <name>CLOCK</name>
+            <value>7</value>
+        </enumerator>
+        <enumerator>
+            <name>PSI</name>
+            <value>8</value>
+        </enumerator>
+        <enumerator>
+            <name>FSP</name>
+            <value>9</value>
+        </enumerator>
+        <enumerator>
+            <name>ALL</name>
+            <value>10</value>
+        </enumerator>
+        <id>CDM_DOMAIN</id>
+    </enumerationType>
+    <attribute>
+        <description>
+            Specifies a target's CEC degraded mode domain.  For example, all
+            DIMMs are part of the DIMM CEC degraded mode domain.
+        </description>
+        <hasStringConversion></hasStringConversion>
+        <id>CDM_DOMAIN</id>
+        <persistency>non-volatile</persistency>
+        <readable></readable>
+        <simpleType>
+            <enumeration>
+                <id>CDM_DOMAIN</id>
+            </enumeration>
+            <uint8_t></uint8_t>
+        </simpleType>
+    </attribute>
+
+    <attribute>
+        <description>Capturing EQ Gard value</description>
+        <id>EQ_GARD</id>
+        <no_export></no_export>
+        <persistency>non-volatile</persistency>
+        <readable></readable>
+        <simpleType>
+            <uint8_t></uint8_t>
+        </simpleType>
+        <writeable></writeable>
+    </attribute>
+
+    <enumerationType>
+        <default>NOT_MASTER</default>
+        <description>
+            Enumeration indicating the role of proc as master/alt_master/not_master
+        </description>
+        <enumerator>
+            <name>ACTING_MASTER</name>
+            <value>0</value>
+        </enumerator>
+        <enumerator>
+            <name>MASTER_CANDIDATE</name>
+            <value>1</value>
+        </enumerator>
+        <enumerator>
+            <name>NOT_MASTER</name>
+            <value>2</value>
+        </enumerator>
+        <id>PROC_MASTER_TYPE</id>
+    </enumerationType>
+
+    <attribute>
+        <description>Type of Master, ACTING_MASTER or MASTER_CANDIDATE or
+            NOT_MASTER</description>
+        <hasStringConversion></hasStringConversion>
+        <id>PROC_MASTER_TYPE</id>
+        <no_export></no_export>
+        <persistency>non-volatile</persistency>
+        <readable></readable>
+        <simpleType>
+            <enumeration>
+                <default>NOT_MASTER</default>
+                <id>PROC_MASTER_TYPE</id>
+            </enumeration>
+            <uint8_t></uint8_t>
+        </simpleType>
+        <writeable></writeable>
+    </attribute>
+
+    <enumerationType>
+        <description>Indicates whether IPL should be done by stepping through the isteps (true)
+            or continuously executing all steps end-to-end (false).</description>
+        <enumerator>
+            <name>FALSE</name>
+            <value>0x0</value>
+        </enumerator>
+        <enumerator>
+            <name>TRUE</name>
+            <value>0x1</value>
+        </enumerator>
+        <id>ISTEP_MODE</id>
+    </enumerationType>
+
+    <attribute>
+        <description>
+            Indicates whether IPL should be done by stepping through the isteps (true)
+            or continuously executing all steps end-to-end (false).
+        </description>
+        <id>ISTEP_MODE</id>
+        <no_export></no_export>
+        <persistency>non-volatile</persistency>
+        <readable></readable>
+        <simpleType>
+            <enumeration></enumeration>
+            <uint8_t></uint8_t>
+        </simpleType>
+        <writeable></writeable>
+    </attribute>
+    <attribute>
+        <description>The address offset which each Chiplet types pervasive address space used to represent the a chiplet. 0x00 to 0x0F =&gt; For P9 all non-core and non-cache chiplets 0x10 to 0x1F =&gt; All Cache Chiplets 0x20 to 0x37 =&gt; All Core Chiplets 0x38 to 0x3F =&gt; Multicast Operation</description>
+        <id>CHIPLET_ID</id>
+        <persistency>non-volatile</persistency>
+        <readable />
+        <simpleType>
+            <uint8_t>
+                <default>0xFF</default>
+            </uint8_t>
+        </simpleType>
+    </attribute>
+</attributes>
