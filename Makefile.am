@@ -11,11 +11,13 @@ CLEANFILES = p9.dtb p10.dtb
 endif
 EXTRA_PROGRAMS = attributes
 
+if BUILD_TOOLS
 noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
 lib_LTLIBRARIES = libattribute-api.la
 
 nobase_include_HEADERS = attribute/attribute.h \
 			 attribute/attribute_api.h
+endif
 
 libfdt_traverse_la_SOURCES = \
 	fdt/fdt_error.c \
