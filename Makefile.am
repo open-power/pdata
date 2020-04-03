@@ -11,7 +11,7 @@ CLEANFILES = p9.dtb p10.dtb
 endif
 EXTRA_PROGRAMS = attributes
 
-if BUILD_TOOLS
+if BUILD_LIBS
 noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
 lib_LTLIBRARIES = libattribute-api.la
 

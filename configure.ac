@@ -42,6 +42,7 @@ if test x"$ac_cv_lib_pdbg_pdbg_targets_init" != "xyes" ; then
 fi
 
 AM_CONDITIONAL([BUILD_TOOLS], [test x"$ARCH" != "xarm" -a $PDBG -eq 1])
+AM_CONDITIONAL([BUILD_LIBS], [test $PDBG -eq 1])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
