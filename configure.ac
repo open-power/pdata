@@ -60,6 +60,11 @@ if test "x$enable_gen_attrsinfoheader" = "xyes" ; then
 	fi
 fi
 
+AC_ARG_ENABLE([gen_dynamicdt],
+	AS_HELP_STRING([--enable-gen-dynamicdt],
+		       [Generate dynamic device tree]))
+AM_CONDITIONAL([BUILD_DYNAMIC_DT], [test x"$enable_gen_dynamicdt" = "xyes"])
+
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])

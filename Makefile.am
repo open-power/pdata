@@ -4,6 +4,8 @@ AM_MAKEFLAGS = --no-print-directory
 AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 
 lib_LTLIBRARIES =
+data_DATA =
+CLEANFILES =
 
 if BUILD_LIBS
 lib_LTLIBRARIES += libfdt-traverse.la libfdt-attr.la
@@ -11,9 +13,9 @@ endif
 
 if BUILD_TOOLS
 bin_PROGRAMS = attributes
-data_DATA = p9.dtb p10.dtb
+data_DATA += p9.dtb p10.dtb
 noinst_LTLIBRARIES = libdtm.la
-CLEANFILES = p9.dtb p10.dtb
+CLEANFILES += p9.dtb p10.dtb
 endif
 EXTRA_PROGRAMS = attributes
 
@@ -23,6 +25,11 @@ pkgconfiglib_DATA = libdt-api/libdt-api.pc
 lib_LTLIBRARIES += libdt-api.la
 include_HEADERS = attributes_info.H libdt-api/dt_api.H
 CLEANFILES += attributes_info.H
+endif
+
+if BUILD_DYNAMIC_DT
+data_DATA += power-target.dtb
+CLEANFILES += power-target.dts power-target.dtb
 endif
 
 libfdt_traverse_la_SOURCES = \
@@ -78,6 +85,12 @@ libdt_api_la_SOURCES = libdt-api/dt_api.C \
 DTC_V = $(DTC_V_$(V))
 DTC_V_ = $(DTC_V_$(AM_DEFAULT_VERBOSITY))
 DTC_V_0	= @echo "  DTC     " $@;
+
+power-target.dts:
+	$(srcdir)/scripts/dt_generate.sh dts $@
+
+power-target.dtb: power-target.dts
+	$(DTC_V)$(DTC) -I dts -O dtb $< > $@
 
 %.dtb: dts/%.dts
 	$(DTC_V)$(DTC) -i$(dir $@) -I dts $< -O dtb > $@
