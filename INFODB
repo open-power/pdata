@@ -1,0 +1,75 @@
+Attribute information database (INFODB) stores following information:
+
+  - List of attributes
+  - Metadata for each attribute
+  - List of targets
+  - List of attributes for each target
+
+INFODB is regular text file and each line corresponds to a record.  Each
+record has following format:
+
+  key: value
+
+  - key is single word
+  - value is a collection of words
+
+
+1. List of attributes record
+
+   key = "all"
+   value = Space separate list of all attribute names
+
+2. Attribute record
+
+   key = name of the attribute
+   value = datatype dim [dim1 [dim2 [dim3]]] enumcount [key1 value1 ...] defined [default-value] |
+           "str" len dim [dim1 [dim2 [dim3]]] defined [default-value] |
+           "complex" spec dim [dim1 [dim2 [dim3]]] defined [default-value]
+
+   datatype = "uint8" | "uint16" | "uint32" | "uint64" |
+              "int8" | "int16" | "int32" | "int64"
+
+   dim = number of dimensions (0 for scalar, 1 for array, 2 for 2-d array)
+   dim1 = size of 1st dimension (for 1-d array, size of array)
+   dim2 = size of 2nd dimension
+   dim3 = size of 3rd dimension
+
+   enumcount = number of enum values (0 if value is not an enumeration)
+   key1 = Enumeration key1
+   value1 = Enumeration value1
+
+   defined = boolean if the value is defined (1 if there exist default-value)
+
+   default-value = The default value if defined == 1
+
+   len = The fixed allocated length if the data type is string
+
+   spec = The value specification if the data type is complex
+
+      spec = dlen [dlen ...]
+      dlen = "1" | "2" | "4" | "8"
+
+3. List of targets record
+
+   key = "targets"
+   value = Space separated list of all targets
+
+4. List of attribute per target record
+
+   key = target (one of the targets listed in record 3)
+   value = Space separate list of indexes for attributes
+           (The index is the order in which attributes appear in record 1)
+
+
+Example:
+
+----------
+all ATTR_ACTIVE_CORES_NUM ATTR_AVSBUS_BUSNUM ATTR_BACKUP_SEEPROM_SELECT
+ATTR_ACTIVE_CORES_NUM uint8 0 0 1 0x1
+ATTR_AVSBUS_BUSNUM uint8 1 4 0 1 0 0 0 0
+ATTR_BACKUP_SEEPROM_SELECT uint8 0 2 PRIMARY 0x0 SECONDARY 0x1 1 0x0
+targets TARGET_TYPE_PROC_CHIP TARGET_TYPE_PERV TARGET_TYPE_SYSTEM
+TARGET_TYPE_PROC_CHIP 0
+TARGET_TYPE_PERV 1
+TARGET_TYPE_SYSTEM 2
+----------
