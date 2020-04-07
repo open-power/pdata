@@ -6,7 +6,6 @@ AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 if BUILD_TOOLS
 bin_PROGRAMS = attributes
 data_DATA = p9.dtb p10.dtb
-check_PROGRAMS = attribute_format_test
 CLEANFILES = p9.dtb p10.dtb
 endif
 EXTRA_PROGRAMS = attributes
@@ -60,10 +59,6 @@ attributes_SOURCES = \
 	attribute/attribute_util.h
 attributes_LDADD = libdtm.la libattribute-api.la
 attributes_LDFLAGS = -lm
-
-attribute_format_test_SOURCES = \
-	attribute/attribute_format_test.c
-attribute_format_test_LDADD = libattribute-api.la
 
 DTC_V = $(DTC_V_$(V))
 DTC_V_ = $(DTC_V_$(AM_DEFAULT_VERBOSITY))
