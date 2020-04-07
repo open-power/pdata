@@ -12,10 +12,6 @@ EXTRA_PROGRAMS = attributes
 
 if BUILD_LIBS
 noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
-lib_LTLIBRARIES = libattribute-api.la
-
-nobase_include_HEADERS = attribute/attribute.h \
-			 attribute/attribute_api.h
 endif
 
 libfdt_traverse_la_SOURCES = \
@@ -42,22 +38,18 @@ libdtm_la_SOURCES = \
 	libdtm/dtm_tree.c
 libdtm_la_LIBADD = libfdt-traverse.la
 
-libattribute_api_la_SOURCES = \
-	attribute/attribute_format.c \
-	attribute/attribute_format.h \
-	attribute/attribute_api.c \
-	attribute/attribute_api.h
-
 attributes_SOURCES = \
 	attribute/attribute.c \
 	attribute/attribute.h \
 	attribute/attribute_db.c \
 	attribute/attribute_db.h \
+	attribute/attribute_format.c \
+	attribute/attribute_format.h \
 	attribute/attribute_target.c \
 	attribute/attribute_target.h \
 	attribute/attribute_util.c \
 	attribute/attribute_util.h
-attributes_LDADD = libdtm.la libattribute-api.la
+attributes_LDADD = libdtm.la
 attributes_LDFLAGS = -lm
 
 DTC_V = $(DTC_V_$(V))
