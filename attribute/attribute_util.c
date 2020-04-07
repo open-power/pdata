@@ -80,6 +80,35 @@ int attr_type_size(enum attr_type type)
 	return size;
 }
 
+void attr_copy(struct attr *src, struct attr *dst)
+{
+	assert(dst);
+
+	*dst = (struct attr) {
+		.type = src->type,
+		.data_size = src->data_size,
+		.dim_count = src->dim_count,
+		.size = src->size,
+		.enum_count = src->enum_count,
+		.aenum = src->aenum,
+	};
+
+	strncpy(dst->name, src->name, ATTR_MAX_LEN);
+	if (dst->dim_count > 0) {
+		int i;
+
+		dst->dim = malloc(dst->dim_count * sizeof(int));
+		assert(dst->dim);
+
+		for (i=0; i<src->dim_count; i++)
+			dst->dim[i] = src->dim[i];
+	}
+
+	dst->value = malloc(dst->data_size * dst->size);
+	assert(dst->value);
+	memcpy(dst->value, src->value, dst->data_size * dst->size);
+}
+
 char *dtree_name_to_class(const char *name)
 {
 	char *tmp, *tok, *class_name;

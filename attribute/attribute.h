@@ -51,7 +51,6 @@ struct attr {
 	int size;
 	int enum_count;
 	struct attr_enum *aenum;
-	bool defined;
 	uint8_t *value;
 };
 

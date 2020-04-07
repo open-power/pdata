@@ -17,9 +17,12 @@
 #ifndef __ATTRIBUTE_UTIL_H
 #define __ATTRIBUTE_UTIL_H
 
+#include <attribute/attribute.h>
+
 enum attr_type attr_type_from_string(char *str);
 const char *attr_type_to_string(uint8_t type);
 int attr_type_size(enum attr_type type);
+void attr_copy(struct attr *src, struct attr *dst);
 
 char *dtree_name_to_class(const char *name);
 

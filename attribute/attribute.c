@@ -137,9 +137,15 @@ static int do_create(const char *dtb, const char *infodb, const char *out_dtb)
 	return 0;
 }
 
+struct do_dump_state {
+	struct attr_info *ainfo;
+	struct dtm_node *node;
+};
+
 static int do_dump_print_node(struct dtm_node *node, void *priv)
 {
-	struct dtm_node *match_node = (struct dtm_node *)priv;
+	struct do_dump_state *state = (struct do_dump_state *)priv;
+	struct dtm_node *match_node = state->node;
 	char *path;
 
 	/* Single node */
@@ -174,7 +180,7 @@ static void do_dump_value(struct attr *attr)
 			break;
 
 		case ATTR_TYPE_UINT64:
-			printf(" 0x%" PRIx64, *(uint64_t *)ptr);
+			printf(" 0x%016" PRIx64, *(uint64_t *)ptr);
 			break;
 
 		case ATTR_TYPE_INT8:
@@ -203,9 +209,13 @@ static void do_dump_value(struct attr *attr)
 
 static int do_dump_print_prop(struct dtm_node *node, struct dtm_property *prop, void *priv)
 {
-	const char *name, *value;
-	int value_len;
-	struct attr attr = {
+	struct do_dump_state *state = (struct do_dump_state *)priv;
+	const char *name;
+	const void *buf;
+	int buflen;
+	struct attr *attr, value;
+
+	value = (struct attr) {
 		.type = ATTR_TYPE_UNKNOWN,
 	};
 
@@ -213,38 +223,39 @@ static int do_dump_print_prop(struct dtm_node *node, struct dtm_property *prop, 
 	if (strncmp(name, "ATTR", 4) != 0)
 		return 0;
 
-	value = dtm_prop_value(prop, &value_len);
-	attr_decode(&attr, (uint8_t *)value, value_len);
-
-	if (!attr.defined && !priv)
+	attr = attr_db_attr(state->ainfo, name);
+	if (!attr)
 		goto skip;
 
-	printf("  %s: %s", name, attr_type_to_string(attr.type));
-	if (!attr.defined) {
-		printf(" UNDEFINED");
+	attr_copy(attr, &value);
+
+	buf = dtm_prop_value(prop, &buflen);
+	attr_decode(&value, (uint8_t *)buf, buflen);
+
+	printf("  %s: %s", name, attr_type_to_string(value.type));
+	if (value.size <= 4) {
+		do_dump_value(&value);
 	} else {
-		if (attr.size <= 4) {
-			do_dump_value(&attr);
-		} else {
-			printf(" [%d]", attr.size);
-		}
+		printf(" [%d]", value.size);
 	}
 	printf("\n");
 
 skip:
-	if (attr.dim)
-		free(attr.dim);
+	if (value.dim)
+		free(value.dim);
 
-	if (attr.value)
-		free(attr.value);
+	if (value.value)
+		free(value.value);
 
 	return 0;
 }
 
-static int do_dump(const char *dtb, const char *target)
+static int do_dump(const char *dtb, const char *infodb, const char *target)
 {
 	struct dtm_file *dfile;
 	struct dtm_node *root, *node = NULL;
+	struct attr_info ainfo;
+	struct do_dump_state state;
 	int ret;
 
 	dfile = dtm_file_open(dtb);
@@ -256,6 +267,13 @@ static int do_dump(const char *dtb, const char *target)
 	if (!root)
 		return 1;
 
+	if (!attr_db_load(infodb, &ainfo))
+		return 2;
+
+	state = (struct do_dump_state) {
+		.ainfo = &ainfo,
+	};
+
 	if (target) {
 		if (target[0] == '/') {
 			node = dtm_find_node_by_path(root, target);
@@ -264,12 +282,14 @@ static int do_dump(const char *dtb, const char *target)
 		}
 		if (!node) {
 			fprintf(stderr, "Failed to translate target %s\n", target);
-			return 2;
+			return 3;
 		}
 
-		ret = dtm_traverse(node, true, do_dump_print_node, do_dump_print_prop, node);
+		state.node = node;
+
+		ret = dtm_traverse(node, true, do_dump_print_node, do_dump_print_prop, &state);
 	} else {
-		ret = dtm_traverse(root, true, do_dump_print_node, do_dump_print_prop, NULL);
+		ret = dtm_traverse(root, true, do_dump_print_node, do_dump_print_prop, &state);
 	}
 
 	if (ret == 99)
@@ -393,17 +413,17 @@ int do_export_value_string(struct attr *attr, uint8_t *value)
 	return used;
 }
 
-static void do_export_prop_scalar(struct attr *attr, struct attr *value)
+static void do_export_prop_scalar(struct attr *attr)
 {
 	printf("%s", attr->name);
 	printf("    ");
 	do_export_data_type(attr);
 	printf("    ");
-	do_export_value_string(attr, value->value);
+	do_export_value_string(attr, attr->value);
 	printf("\n");
 }
 
-static void do_export_prop_array1(struct attr *attr, struct attr *value)
+static void do_export_prop_array1(struct attr *attr)
 {
 	int offset = 0, n;
 	int i;
@@ -415,13 +435,13 @@ static void do_export_prop_array1(struct attr *attr, struct attr *value)
 		do_export_data_type(attr);
 		printf("[%d]", attr->dim[0]);
 		printf(" ");
-		n = do_export_value_string(attr, value->value + offset);
+		n = do_export_value_string(attr, attr->value + offset);
 		offset += n;
 		printf("\n");
 	}
 }
 
-static void do_export_prop_array2(struct attr *attr, struct attr *value)
+static void do_export_prop_array2(struct attr *attr)
 {
 	int offset = 0, n;
 	int i, j;
@@ -434,14 +454,14 @@ static void do_export_prop_array2(struct attr *attr, struct attr *value)
 			do_export_data_type(attr);
 			printf("[%d][%d]", attr->dim[0], attr->dim[1]);
 			printf(" ");
-			n = do_export_value_string(attr, value->value + offset);
+			n = do_export_value_string(attr, attr->value + offset);
 			offset += n;
 			printf("\n");
 		}
 	}
 }
 
-static void do_export_prop_array3(struct attr *attr, struct attr *value)
+static void do_export_prop_array3(struct attr *attr)
 {
 	int offset = 0, n;
 	int i, j, k;
@@ -455,7 +475,7 @@ static void do_export_prop_array3(struct attr *attr, struct attr *value)
 				do_export_data_type(attr);
 				printf("[%d][%d][%d]", attr->dim[0], attr->dim[1], attr->dim[2]);
 				printf(" ");
-				n = do_export_value_string(attr, value->value + offset);
+				n = do_export_value_string(attr, attr->value + offset);
 				offset += n;
 				printf("\n");
 			}
@@ -478,36 +498,30 @@ static int do_export_prop(struct dtm_node *node, struct dtm_property *prop, void
 	if (strncmp(name, "ATTR", 4) != 0)
 		return 0;
 
-	buf = dtm_prop_value(prop, &buflen);
-	attr_decode(&value, buf, buflen);
-
-	if (!value.defined)
-		goto skip;
-
 	attr = attr_db_attr(state->ainfo, name);
 	if (!attr)
 		goto skip;
 
-	assert(attr->type == value.type);
-	assert(attr->data_size == value.data_size);
-	assert(attr->dim_count == value.dim_count);
-	assert(attr->size == value.size);
+	attr_copy(attr, &value);
 
-	switch (attr->dim_count) {
+	buf = dtm_prop_value(prop, &buflen);
+	attr_decode(&value, buf, buflen);
+
+	switch (value.dim_count) {
 	case 0:
-		do_export_prop_scalar(attr, &value);
+		do_export_prop_scalar(&value);
 		break;
 
 	case 1:
-		do_export_prop_array1(attr, &value);
+		do_export_prop_array1(&value);
 		break;
 
 	case 2:
-		do_export_prop_array2(attr, &value);
+		do_export_prop_array2(&value);
 		break;
 
 	case 3:
-		do_export_prop_array3(attr, &value);
+		do_export_prop_array3(&value);
 		break;
 
 	default:
@@ -604,13 +618,13 @@ static bool do_import_parse_target(struct do_import_state *state, char *line)
 static bool do_import_parse_attr(struct do_import_state *state, char *line)
 {
 	struct dtm_property *prop;
-	struct attr attr;
+	struct attr *attr, value;
 	char *attr_name, *data_type, *value_str;
 	char *tok, *saveptr = NULL;
 	const uint8_t *cbuf;
 	uint8_t *buf;
 	int buflen;
-	unsigned long long value;
+	unsigned long long data;
 	int idx[3] = { 0, 0, 0 };
 	int dim[3] = { -1, -1, -1 };
 	int i, index;
@@ -682,94 +696,94 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 		return false;
 	}
 
-	attr_decode(&attr, cbuf, buflen);
+	attr = attr_db_attr(state->ainfo, attr_name);
+	if (!attr) {
+		fprintf(stderr, "  %s: attribute unknown\n", attr_name);
+		return false;
+	}
 
-	for (i=0; i<attr.dim_count; i++) {
-		if (dim[i] != attr.dim[i]) {
+	for (i=0; i<attr->dim_count; i++) {
+		if (dim[i] != attr->dim[i]) {
 			int j;
 
 			fprintf(stderr, "  %s: dim mismatch ", attr_name);
-			for (j=0; j<attr.dim_count; j++)
+			for (j=0; j<attr->dim_count; j++)
 				fprintf(stderr, "[%d]", dim[j]);
 			fprintf(stderr, " != ");
-			for (j=0; j<attr.dim_count; j++)
-				fprintf(stderr, "[%d]", attr.dim[j]);
+			for (j=0; j<attr->dim_count; j++)
+				fprintf(stderr, "[%d]", attr->dim[j]);
 			fprintf(stderr, "\n");
-			assert(dim[i] == attr.dim[i]);
+			assert(dim[i] == attr->dim[i]);
 		}
 	}
-	for (i=0; i<attr.dim_count; i++) {
-		if (idx[i] >= attr.dim[i]) {
+	for (i=0; i<attr->dim_count; i++) {
+		if (idx[i] >= attr->dim[i]) {
 			int j;
 
 			fprintf(stderr, "  %s: index overflow ", attr_name);
-			for (j=0; j<attr.dim_count; j++)
+			for (j=0; j<attr->dim_count; j++)
 				fprintf(stderr, "[%d]", idx[j]);
 			fprintf(stderr, " > ");
-			for (j=0; j<attr.dim_count; j++)
-				fprintf(stderr, "[%d]", attr.dim[j]);
+			for (j=0; j<attr->dim_count; j++)
+				fprintf(stderr, "[%d]", attr->dim[j]);
 			fprintf(stderr, "\n");
-			assert(idx[i] < attr.dim[i]);
+			assert(idx[i] < attr->dim[i]);
 		}
 	}
 
 	index = 0;
-	if (attr.dim_count == 1) {
+	if (attr->dim_count == 1) {
 		index = idx[0];
-	} else if (attr.dim_count == 2) {
-		index = idx[0] * attr.dim[0] + idx[1];
-	} else if (attr.dim_count == 3) {
-		index = idx[0] * attr.dim[0] + idx[1] * attr.dim[1] + idx[2];
+	} else if (attr->dim_count == 2) {
+		index = idx[0] * attr->dim[0] + idx[1];
+	} else if (attr->dim_count == 3) {
+		index = idx[0] * attr->dim[0] + idx[1] * attr->dim[1] + idx[2];
 	}
 
 	if (is_enum) {
-		struct attr *attr_def;
 		bool found = false;
 
-		attr_def = attr_db_attr(state->ainfo, attr_name);
-		assert(attr_def);
-
-		for (i=0; i<attr_def->enum_count; i++) {
-			if (!strcmp(attr_def->aenum[i].key, value_str)) {
-				value = attr_def->aenum[i].value;
+		for (i=0; i<attr->enum_count; i++) {
+			if (!strcmp(attr->aenum[i].key, value_str)) {
+				data = attr->aenum[i].value;
 				found = true;
 				break;
 			}
 		}
 		assert(found);
 	} else {
-		value = strtoull(value_str, NULL, 0);
+		data = strtoull(value_str, NULL, 0);
 	}
 
-	if (attr.data_size == 1) {
-		uint8_t *ptr = (uint8_t *)attr.value;
-		uint8_t val = value;
+	attr_copy(attr, &value);
+
+	if (value.data_size == 1) {
+		uint8_t *ptr = (uint8_t *)value.value;
+		uint8_t val = data;
 		ptr[index] =  val;
 
-	} else if (attr.data_size == 2) {
-		uint16_t *ptr = (uint16_t *)attr.value;
-		uint16_t val = value;
+	} else if (value.data_size == 2) {
+		uint16_t *ptr = (uint16_t *)value.value;
+		uint16_t val = data;
 		ptr[index] = val;
 
-	} else if (attr.data_size == 4) {
-		uint32_t *ptr = (uint32_t *)attr.value;
-		uint32_t val = value;
+	} else if (value.data_size == 4) {
+		uint32_t *ptr = (uint32_t *)value.value;
+		uint32_t val = data;
 		ptr[index] = val;
 
-	} else if (attr.data_size == 8) {
-		uint64_t *ptr = (uint64_t *)attr.value;
-		uint64_t val = value;
+	} else if (value.data_size == 8) {
+		uint64_t *ptr = (uint64_t *)value.value;
+		uint64_t val = data;
 		ptr[index] = val;
 	}
 
-	attr.defined = true;
-
-	attr_encode(&attr, &buf, &buflen);
+	attr_encode(&value, &buf, &buflen);
 	dtm_prop_set_value(prop, buf, buflen);
 	free(buf);
 
 	state->count++;
-	if (state->count < attr.size)
+	if (state->count < value.size)
 		return true;
 
 	fprintf(stderr, "  %s: imported\n", attr_name);
@@ -860,13 +874,14 @@ static int do_import(const char *dtb, const char *infodb, const char *dump_file)
 	return 0;
 }
 
-static int do_read(const char *dtb, const char *target, const char *name)
+static int do_read(const char *dtb, const char *infodb, const char *target, const char *name)
 {
 	struct dtm_file *dfile;
 	struct dtm_node *root, *node;
 	struct dtm_property *prop;
 	const void *val;
-	struct attr attr;
+	struct attr_info ainfo;
+	struct attr *attr, value;
 	int len, i;
 
 	dfile = dtm_file_open(dtb);
@@ -878,68 +893,74 @@ static int do_read(const char *dtb, const char *target, const char *name)
 	if (!root)
 		return 1;
 
+	if (!attr_db_load(infodb, &ainfo))
+		return 2;
+
 	if (target[0] == '/') {
 		node = dtm_find_node_by_path(root, target);
 		if (!node) {
 			fprintf(stderr, "No such target %s\n", target);
-			return 2;
+			return 3;
 		}
 	} else {
 		node = from_cronus_target(root, target);
 		if (!node) {
 			fprintf(stderr, "Failed to translate %s\n", target);
-			return 2;
+			return 3;
 		}
+	}
+
+	attr = attr_db_attr(&ainfo, name);
+	if (!attr) {
+		fprintf(stderr, "Attribute %s not defined\n", name);
+		return 4;
 	}
 
 	prop = dtm_node_get_property(node, name);
 	if (!prop) {
 		fprintf(stderr, "No such attribute %s\n", name);
-		return 3;
+		return 4;
 	}
 
+	attr_copy(attr, &value);
+
 	val = dtm_prop_value(prop, &len);
-	attr_decode(&attr, (const uint8_t *)val, len);
+	attr_decode(&value, (const uint8_t *)val, len);
 
 	printf("%s", name);
-	if (attr.dim_count > 0) {
+	if (value.dim_count > 0) {
 		printf("<");
-		printf("%d", attr.dim[0]);
-		for (i=1; i<attr.dim_count; i++)
-			printf(",%d", attr.dim[i]);
+		printf("%d", value.dim[0]);
+		for (i=1; i<value.dim_count; i++)
+			printf(",%d", value.dim[i]);
 		printf(">");
 	}
 
 	printf(" = ");
 
-	if (!attr.defined) {
-		printf("UNDEFINED\n");
-		return 0;
-	}
+	if (value.data_size == 1) {
+		uint8_t *ptr = (uint8_t *)value.value;
 
-	if (attr.data_size == 1) {
-		uint8_t *ptr = (uint8_t *)attr.value;
-
-		for (i=0; i<attr.size; i++)
+		for (i=0; i<value.size; i++)
 			printf("0x%02x ", ptr[i]);
 
-	} else if (attr.data_size == 2) {
-		uint16_t *ptr = (uint16_t *)attr.value;
+	} else if (value.data_size == 2) {
+		uint16_t *ptr = (uint16_t *)value.value;
 
-		for (i=0; i<attr.size; i++)
+		for (i=0; i<value.size; i++)
 			printf("0x%04x ", ptr[i]);
 
-	} else if (attr.data_size == 4) {
-		uint32_t *ptr = (uint32_t *)attr.value;
+	} else if (value.data_size == 4) {
+		uint32_t *ptr = (uint32_t *)value.value;
 
-		for (i=0; i<attr.size; i++)
+		for (i=0; i<value.size; i++)
 			printf("0x%08x ", ptr[i]);
 
-	} else if (attr.data_size == 8) {
-		uint64_t *ptr = (uint64_t *)attr.value;
+	} else if (value.data_size == 8) {
+		uint64_t *ptr = (uint64_t *)value.value;
 
-		for (i=0; i<attr.size; i++)
-			printf("0x%16"PRIx64" ", ptr[i]);
+		for (i=0; i<value.size; i++)
+			printf("0x%016"PRIx64" ", ptr[i]);
 	}
 	printf("\n");
 
@@ -989,15 +1010,16 @@ static int do_translate(const char *dtb, const char *target)
 	return 0;
 }
 
-static int do_write(const char *dtb, const char *target, const char *name,
-		    const char **argv, int argc)
+static int do_write(const char *dtb, const char *infodb, const char *target,
+		    const char *name, const char **argv, int argc)
 {
 	struct dtm_file *dfile;
 	struct dtm_node *root, *node;
 	struct dtm_property *prop;
 	const void *val;
 	uint8_t *buf;
-	struct attr attr;
+	struct attr_info ainfo;
+	struct attr *attr, value;
 	int len, i, ret;
 
 	dfile = dtm_file_open(dtb);
@@ -1009,18 +1031,27 @@ static int do_write(const char *dtb, const char *target, const char *name,
 	if (!root)
 		return 1;
 
+	if (!attr_db_load(infodb, &ainfo))
+		return 2;
+
 	if (target[0] == '/') {
 		node = dtm_find_node_by_path(root, target);
 		if (!node) {
 			fprintf(stderr, "No such target %s\n", target);
-			return 2;
+			return 3;
 		}
 	} else {
 		node = from_cronus_target(root, target);
 		if (!node) {
 			fprintf(stderr, "Failed to translate %s\n", target);
-			return 2;
+			return 3;
 		}
+	}
+
+	attr = attr_db_attr(&ainfo, name);
+	if (!attr) {
+		fprintf(stderr, "Attribute %s not defined\n", name);
+		return 3;
 	}
 
 	prop = dtm_node_get_property(node, name);
@@ -1029,33 +1060,33 @@ static int do_write(const char *dtb, const char *target, const char *name,
 		return 3;
 	}
 
-	val = dtm_prop_value(prop, &len);
-	attr_decode(&attr, (const uint8_t *)val, len);
+	attr_copy(attr, &value);
 
-	if (argc != attr.size) {
-		fprintf(stderr, "Insufficient values %d, expected %d\n", argc, attr.size);
+	val = dtm_prop_value(prop, &len);
+	attr_decode(&value, (const uint8_t *)val, len);
+
+	if (argc != value.size) {
+		fprintf(stderr, "Insufficient values %d, expected %d\n", argc, value.size);
 		return 4;
 	}
 
-	for (i=0; i<attr.size; i++) {
+	for (i=0; i<value.size; i++) {
 		unsigned long long data;
 
 		data = strtoull(argv[i], NULL, 0);
 
-		if (attr.data_size == 1) {
-			attr.value[i] = data & 0xff;
-		} else if (attr.data_size == 2) {
-			((uint16_t *)attr.value)[i] = data & 0xffff;
-		} else if (attr.data_size == 4) {
-			((uint32_t *)attr.value)[i] = data & 0xffffffff;
-		} else if (attr.data_size == 8) {
-			((uint64_t *)attr.value)[i] = data;
+		if (value.data_size == 1) {
+			value.value[i] = data & 0xff;
+		} else if (value.data_size == 2) {
+			((uint16_t *)value.value)[i] = data & 0xffff;
+		} else if (value.data_size == 4) {
+			((uint32_t *)value.value)[i] = data & 0xffffffff;
+		} else if (value.data_size == 8) {
+			((uint64_t *)value.value)[i] = data;
 		}
 	}
 
-	attr.defined = true;
-
-	attr_encode(&attr, &buf, &len);
+	attr_encode(&value, &buf, &len);
 	dtm_prop_set_value(prop, buf, len);
 	free(buf);
 
@@ -1079,12 +1110,12 @@ static int do_write(const char *dtb, const char *target, const char *name,
 static void usage(const char *prog)
 {
 	fprintf(stderr, "Usage: %s create <dtb> <infodb> <out-dtb>\n", prog);
-	fprintf(stderr, "       %s dump <dtb> [<target>]\n", prog);
+	fprintf(stderr, "       %s dump <dtb> <infodb> [<target>]\n", prog);
 	fprintf(stderr, "       %s export <dtb> <infodb>\n", prog);
 	fprintf(stderr, "       %s import <dtb> <infodb> <attr-dump>\n", prog);
-	fprintf(stderr, "       %s read <dtb> <target> <attriute>\n", prog);
+	fprintf(stderr, "       %s read <dtb> <infodb> <target> <attriute>\n", prog);
 	fprintf(stderr, "       %s translate <dtb> <target>\n", prog);
-	fprintf(stderr, "       %s write <dtb> <target> <attriute> <value>\n", prog);
+	fprintf(stderr, "       %s write <dtb> <infodb> <target> <attriute> <value>\n", prog);
 	exit(1);
 }
 
@@ -1102,13 +1133,13 @@ int main(int argc, const char **argv)
 		ret = do_create(argv[2], argv[3], argv[4]);
 
 	} else if (strcmp(argv[1], "dump") == 0) {
-		if (argc != 3 && argc != 4)
+		if (argc != 4 && argc != 5)
 			usage(argv[0]);
 
-		if (argc == 3)
-			ret = do_dump(argv[2], NULL);
+		if (argc == 4)
+			ret = do_dump(argv[2], argv[3], NULL);
 		else
-			ret = do_dump(argv[2], argv[3]);
+			ret = do_dump(argv[2], argv[3], argv[4]);
 
 	} else if (strcmp(argv[1], "export") == 0) {
 		if (argc != 4)
@@ -1123,10 +1154,10 @@ int main(int argc, const char **argv)
 		ret = do_import(argv[2], argv[3], argv[4]);
 
 	} else if (strcmp(argv[1], "read") == 0) {
-		if (argc != 5)
+		if (argc != 6)
 			usage(argv[0]);
 
-		ret = do_read(argv[2], argv[3], argv[4]);
+		ret = do_read(argv[2], argv[3], argv[4], argv[5]);
 
 	} else if (strcmp(argv[1], "translate") == 0) {
 		if (argc != 4)
@@ -1135,10 +1166,10 @@ int main(int argc, const char **argv)
 		ret = do_translate(argv[2], argv[3]);
 
 	} else if (strcmp(argv[1], "write") == 0) {
-		if (argc < 6)
+		if (argc < 7)
 			usage(argv[0]);
 
-		ret = do_write(argv[2], argv[3], argv[4], &argv[5], argc-5);
+		ret = do_write(argv[2], argv[3], argv[4], argv[5], &argv[6], argc-6);
 
 	} else {
 		usage(argv[0]);
