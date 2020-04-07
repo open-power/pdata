@@ -6,13 +6,10 @@ AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 if BUILD_TOOLS
 bin_PROGRAMS = attributes
 data_DATA = p9.dtb p10.dtb
+noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
 CLEANFILES = p9.dtb p10.dtb
 endif
 EXTRA_PROGRAMS = attributes
-
-if BUILD_LIBS
-noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
-endif
 
 libfdt_traverse_la_SOURCES = \
 	fdt/fdt_error.c \
