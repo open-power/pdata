@@ -57,7 +57,7 @@ struct {
 	{ "TARGET_TYPE_PHB", "phb", "phb" },
 	{ "TARGET_TYPE_PMIC", "pmic", "pmic" },
 	{ "TARGET_TYPE_PPE", "ppe", "ppe" },
-	{ "TARGET_TYPE_PROC_CHIP", "pib", "proc_chip" },
+	{ "TARGET_TYPE_PROC_CHIP", "proc", "proc_chip" },
 	{ "TARGET_TYPE_SBE", "sbe", "sbe" },
 	{ "TARGET_TYPE_SYSTEM", "root", "system" },
 	{ "TARGET_TYPE_XBUS", "xbus", "xbus" },
