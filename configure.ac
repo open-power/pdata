@@ -34,15 +34,14 @@ AC_SUBST([DTC])
 
 fi
 
-PDBG=1
-AC_CHECK_LIB([pdbg], [pdbg_targets_init], [LIBS="-lpdbg -lfdt $LIBS"], [], [-lfdt])
-if test x"$ac_cv_lib_pdbg_pdbg_targets_init" != "xyes" ; then
-	AC_MSG_WARN([PDBG library not found, attribute tool will not built])
-	PDBG=0
+FDT=1
+AC_CHECK_LIB([fdt], [fdt_create], [LIBS="-lfdt $LIBS"])
+if test x"$ac_cv_lib_fdt_fdt_create" != "xyes" ; then
+	AC_MSG_WARN([FDT library not found, attribute tool will not built])
+	FDT=0
 fi
 
-AM_CONDITIONAL([BUILD_TOOLS], [test x"$ARCH" != "xarm" -a $PDBG -eq 1])
-AM_CONDITIONAL([BUILD_LIBS], [test $PDBG -eq 1])
+AM_CONDITIONAL([BUILD_TOOLS], [test x"$ARCH" != "xarm" -a $FDT -eq 1])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
