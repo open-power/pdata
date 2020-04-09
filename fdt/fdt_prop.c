@@ -15,6 +15,7 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 
 #include <libfdt.h>
 
@@ -30,14 +31,14 @@ int fdt_prop_read(void *fdt, const char *path, const char *name,
 
 	nodeoffset = fdt_path_offset(fdt, path);
 	if (nodeoffset < 0)
-		return 1;
+		return ENOENT;
 
 	buf = fdt_getprop(fdt, nodeoffset, name, &buflen);
 	if (!buf)
-		return 2;
+		return ENOENT;
 
 	if (*value_len < buflen)
-		return 3;
+		return EINVAL;
 
 	memcpy(value, buf, buflen);
 	*value_len = buflen;
@@ -51,11 +52,11 @@ int fdt_prop_write(void *fdt, const char *path, const char *name,
 
 	nodeoffset = fdt_path_offset(fdt, path);
 	if (nodeoffset < 0)
-		return 1;
+		return ENOENT;
 
 	ret = fdt_setprop_inplace(fdt, nodeoffset, name, value, value_len);
 	if (ret != 0)
-		return 2;
+		return EIO;
 
 	return 0;
 }
