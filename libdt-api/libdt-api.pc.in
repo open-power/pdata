@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libdt-api
+Description: Device tree api for read/write attributes
+Version: @VERSION@
+Libs: -L${libdir} -ldt-api
+Cflags: -I@includedir@
