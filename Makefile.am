@@ -4,7 +4,7 @@ AM_MAKEFLAGS = --no-print-directory
 AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 
 if BUILD_LIBS
-lib_LTLIBRARIES = libfdt-traverse.la
+lib_LTLIBRARIES = libfdt-traverse.la libfdt-attr.la
 endif
 
 if BUILD_TOOLS
@@ -20,6 +20,12 @@ libfdt_traverse_la_SOURCES = \
 	fdt/fdt_error.h \
 	fdt/fdt_traverse.c \
 	fdt/fdt_traverse.h
+
+libfdt_attr_la_SOURCES = \
+	fdt/fdt_attr.c \
+	fdt/fdt_attr.h \
+	fdt/fdt_prop.c \
+	fdt/fdt_prop.h
 
 libdtm_la_SOURCES = \
 	ccan/build_assert/build_assert.h \
