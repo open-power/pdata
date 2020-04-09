@@ -3,10 +3,14 @@ ACLOCAL_AMFLAGS = -Im4
 AM_MAKEFLAGS = --no-print-directory
 AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 
+if BUILD_LIBS
+lib_LTLIBRARIES = libfdt-traverse.la
+endif
+
 if BUILD_TOOLS
 bin_PROGRAMS = attributes
 data_DATA = p9.dtb p10.dtb
-noinst_LTLIBRARIES = libfdt-traverse.la libdtm.la
+noinst_LTLIBRARIES = libdtm.la
 CLEANFILES = p9.dtb p10.dtb
 endif
 EXTRA_PROGRAMS = attributes

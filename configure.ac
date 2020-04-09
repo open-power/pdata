@@ -42,6 +42,7 @@ if test x"$ac_cv_lib_fdt_fdt_create" != "xyes" ; then
 fi
 
 AM_CONDITIONAL([BUILD_TOOLS], [test x"$ARCH" != "xarm" -a $FDT -eq 1])
+AM_CONDITIONAL([BUILD_LIBS], [test $FDT -eq 1])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
