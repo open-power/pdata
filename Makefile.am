@@ -3,8 +3,10 @@ ACLOCAL_AMFLAGS = -Im4
 AM_MAKEFLAGS = --no-print-directory
 AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 
+lib_LTLIBRARIES =
+
 if BUILD_LIBS
-lib_LTLIBRARIES = libfdt-traverse.la libfdt-attr.la
+lib_LTLIBRARIES += libfdt-traverse.la libfdt-attr.la
 endif
 
 if BUILD_TOOLS
@@ -14,6 +16,14 @@ noinst_LTLIBRARIES = libdtm.la
 CLEANFILES = p9.dtb p10.dtb
 endif
 EXTRA_PROGRAMS = attributes
+
+if BUILD_ATTR_API
+pkgconfiglibdir = ${libdir}/pkgconfig
+pkgconfiglib_DATA = libdt-api/libdt-api.pc
+lib_LTLIBRARIES += libdt-api.la
+include_HEADERS = attributes_info.H libdt-api/dt_api.H
+CLEANFILES += attributes_info.H
+endif
 
 libfdt_traverse_la_SOURCES = \
 	fdt/fdt_error.c \
@@ -58,6 +68,12 @@ attributes_SOURCES = \
 	attribute/attribute_util.h
 attributes_LDADD = libdtm.la
 attributes_LDFLAGS = -lm
+
+attributes_info.H:
+	$(srcdir)/scripts/dt_generate.sh header $@
+
+libdt_api_la_SOURCES = libdt-api/dt_api.C \
+                       libdt-api/dt_api.H
 
 DTC_V = $(DTC_V_$(V))
 DTC_V_ = $(DTC_V_$(AM_DEFAULT_VERBOSITY))

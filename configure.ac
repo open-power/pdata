@@ -23,6 +23,7 @@ AC_SUBST([ENDIAN_FLAG])
 
 AC_PROG_CC
 AC_PROG_LIBTOOL
+AC_PROG_CXX
 
 if test x"$ARCH" != "xarm" ; then
 
@@ -44,8 +45,24 @@ fi
 AM_CONDITIONAL([BUILD_TOOLS], [test x"$ARCH" != "xarm" -a $FDT -eq 1])
 AM_CONDITIONAL([BUILD_LIBS], [test $FDT -eq 1])
 
+AC_ARG_ENABLE([gen_attrsinfoheader],
+	AS_HELP_STRING([--enable-gen_attrsinfoheader],
+		       [Generate attributes API based on dynamic device tree]))
+AM_CONDITIONAL([BUILD_ATTR_API], [test "x$enable_gen_attrsinfoheader" = "xyes"])
+
+if test "x$enable_gen_attrsinfoheader" = "xyes" ; then
+	if test $FDT -eq 0 ; then
+		AC_MSG_ERROR([FDT library not fond])
+	fi
+	AC_CHECK_LIB([pdbg], [pdbg_targets_init], [LIBS="-lpdbg $LIBS"])
+	if test x"$ac_cv_lib_pdbg_pdbg_targets_init" != "xyes" ; then
+		AC_MSG_ERROR([PDBG library not found])
+	fi
+fi
+
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([libdt-api/libdt-api.pc])
 
 AC_OUTPUT
