@@ -17,6 +17,8 @@
 #ifndef __FDT_PROP_H__
 #define __FDT_PROP_H__
 
+#include <stdint.h>
+
 int fdt_prop_read(void *fdt, const char *path, const char *name,
 		  uint8_t *value, int *value_len);
 
