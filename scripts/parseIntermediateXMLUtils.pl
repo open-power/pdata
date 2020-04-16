@@ -398,8 +398,7 @@ sub parseEnumerationTypes
                 next;
             }
             my @enumPair = ( $enumName, $enumVal );
-            my @enumeratorList = \@{$enumDef->enumeratorList};
-            push (@enumeratorList, \@enumPair);
+            push (@{$enumDef->enumeratorList}, \@enumPair);
         }
 
         return ($enumDef);
