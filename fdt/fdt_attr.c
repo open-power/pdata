@@ -38,7 +38,7 @@ int fdt_attr_read(void *fdt, const char *path, const char *name,
 		return ENOMEM;
 
 	ret = fdt_prop_read(fdt, path, name, buf, &buflen);
-	if (!ret) {
+	if (ret != 0) {
 		free(buf);
 		return ret;
 	}
