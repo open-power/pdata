@@ -245,6 +245,13 @@ sub prepareSimpleTypeAttrMetaData
         }
 
         my $spec = $simpleObj->subType; $spec =~ s/\D//g; $spec /= 8;
+        if ( $simpleObj->subType eq "string" )
+        {
+            # string storing as array of char
+            $spec = 1;
+            $totalEleCnt *= $simpleObj->stringSize;
+        }
+
         prepareAllCommonReqMetaDataForAttr($attrID, $totalEleCnt, $spec, "array_", $simpleObj->subType);
     }
     elsif ( $simpleObj->DataType eq "enum" )
@@ -252,6 +259,10 @@ sub prepareSimpleTypeAttrMetaData
         # Hardcoding element count as 1, because always will be one
         my $spec = $simpleObj->subType; $spec =~ s/\D//g; $spec /= 8;
         prepareAllCommonReqMetaDataForAttr($attrID, 1, $spec, "enum_", $simpleObj->subType);
+    }
+    elsif ( $simpleObj->DataType eq "string" )
+    {
+        prepareAllCommonReqMetaDataForAttr($attrID, $simpleObj->stringSize, 1, "", $simpleObj->DataType);
     }
     elsif ( !exists $ignoreSimpleSubType{$simpleObj->DataType} )
     {
@@ -379,6 +390,7 @@ sub prepareSimpleTypeAttrTypeInfo
         }
         
         my $type = $simpleObj->subType;
+        $type = "char" if $type eq "string";
         print {$AIHeaderFH} "\ttypedef $type $attrPrefix$attrID\_Type$dimData;\n";
     }
     elsif ( $simpleObj->DataType eq "enum" )
@@ -391,6 +403,11 @@ sub prepareSimpleTypeAttrTypeInfo
             print {$AIHeaderFH} "\t\tENUM_$attrPrefix$attrID\_$enumpair->[0] = $enumpair->[1],\n";
         }
         print {$AIHeaderFH} "\t};\n";
+    }
+    elsif ( $simpleObj->DataType eq "string" )
+    {
+        my $dimData .= "[".$simpleObj->stringSize."]";
+        print {$AIHeaderFH} "\ttypedef char $attrPrefix$attrID\_Type$dimData;\n";
     }
     elsif ( !exists $ignoreSimpleSubType{$simpleObj->DataType} )
     {
