@@ -29,6 +29,11 @@ struct ComplexTypeField => {
     bits        => '$',
 };
 
+struct ComplexType => {
+    arrayDimension          => '$',
+    listOfComplexTypeFields => '@',
+};
+
 struct NativeType => {
     name        => '$',
     default     => '$',
@@ -63,9 +68,9 @@ struct AttributeDefinition => {
     readable                    => '$',
     virtual                     => '$',
     writeable                   => '$',
-    listOfComplexTypeFields     => '@',
     nativeType                  => 'NativeType',
     simpleType                  => 'SimpleType',
+    complexType                 => 'ComplexType',
 };
 
 sub isVerboseReq
@@ -220,6 +225,9 @@ sub parseAttributeDefinition
     elsif ( $attrDef->exists('complexType') )
     {
         $attributeDefinition->datatype("complexType");
+        my $complexType = ComplexType->new();
+        $complexType->arrayDimension($attrDef->findvalue('complexType/array'));
+
         foreach my $field ( $attrDef->findnodes('complexType/field'))
         {
             my $ComplexTypeField = ComplexTypeField->new();
@@ -228,8 +236,9 @@ sub parseAttributeDefinition
             $ComplexTypeField->default($field->findvalue('default'));
             $ComplexTypeField->bits($field->findvalue('bits'));
 
-            push(@{$attributeDefinition->listOfComplexTypeFields}, $ComplexTypeField);
+            push(@{$complexType->listOfComplexTypeFields}, $ComplexTypeField);
         }
+        $attributeDefinition->complexType($complexType);
     }
     elsif ( $attrDef->exists('simpleType') )
     {

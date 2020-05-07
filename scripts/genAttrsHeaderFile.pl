@@ -219,7 +219,7 @@ sub prepareAttrsMetaData
         }
         elsif ( $attributeDefinition->datatype eq "complexType" )
         {
-            prepareComplexTypeAttrMetaData($attrID, \@{$attributeDefinition->listOfComplexTypeFields});
+            prepareComplexTypeAttrMetaData($attrID, \@{$attributeDefinition->complexType->listOfComplexTypeFields}, $attributeDefinition->complexType->arrayDimension);
         }
         print {$AIHeaderFH} "\n";
     }
@@ -265,6 +265,8 @@ sub prepareComplexTypeAttrMetaData
 {
     my $attrID = $_[0];
     my @listOfComplexObj = @{$_[1]};
+    my $arraySize = $_[2];
+    $arraySize = 1 if $arraySize eq "";
 
     # Prepare Attribute struct name
     my @words = split('_', $attrID);
@@ -312,7 +314,7 @@ sub prepareComplexTypeAttrMetaData
         while( $byteCnt > 0 ) { $structSpec .= 1; $byteCnt -= 1; }
     }
 
-    prepareAllCommonReqMetaDataForAttr($attrID, 1, $structSpec, "struct_", $structAttrName);
+    prepareAllCommonReqMetaDataForAttr($attrID, $arraySize, $structSpec, "struct_", $structAttrName);
 }
 
 sub prepareAllCommonReqMetaDataForAttr
@@ -348,7 +350,7 @@ sub prepareAttrsTypeInfo
         }
         elsif ( $attributeDefinition->datatype eq "complexType" )
         {
-            prepareComplexTypeAttrTypeInfo($attrID, \@{$attributeDefinition->listOfComplexTypeFields});
+            prepareComplexTypeAttrTypeInfo($attrID, \@{$attributeDefinition->complexType->listOfComplexTypeFields}, $attributeDefinition->complexType->arrayDimension);
         }
 
         print {$AIHeaderFH} "\n";
@@ -401,7 +403,8 @@ sub prepareComplexTypeAttrTypeInfo
 {
     my $attrID = $_[0];
     my @listOfComplexObj = @{$_[1]};
-    
+    my $arraySize = $_[2];
+
     # Prepare Attribute struct name
     my @words = split('_', $attrID);
     my $structAttrName;
@@ -424,5 +427,8 @@ sub prepareComplexTypeAttrTypeInfo
     }
    
     print {$AIHeaderFH} "\t} PACKED;\n\n";
-    print {$AIHeaderFH} "\ttypedef $structAttrName $attrPrefix$attrID\_Type;\n";
+    my $dimData = "";
+    $dimData = "[".$arraySize."]" if $arraySize ne "";
+
+    print {$AIHeaderFH} "\ttypedef $structAttrName $attrPrefix$attrID\_Type$dimData;\n";
 }

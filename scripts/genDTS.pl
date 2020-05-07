@@ -564,8 +564,8 @@ sub addTargetDataIntoDTSFile
         }
         elsif ( $attrType eq "complexType" )
         {
-            my $attrVal = $attributeList{$AttrID} -> AttributeData::value;
-            my @listOfComplexObj = @{$attributeDefList{$AttrID}-> AttributeDefinition::listOfComplexTypeFields};
+            my $attrValue = $attributeList{$AttrID} -> AttributeData::value;
+            my @listOfComplexObj = @{$attributeDefList{$AttrID}-> AttributeDefinition::complexType -> ComplexType::listOfComplexTypeFields};
 
             # Need to prepare spec for struct type value into byte format
             my $structSize;
@@ -608,10 +608,14 @@ sub addTargetDataIntoDTSFile
                 while( $byteCnt > 0 ) { $structSize += 1; $byteCnt -= 1; }
             }
             # All complex type default value are zeros so adding directly as zeros based struct size
-            my $attrValue;
-            for(my $i = 0; $i < $structSize; $i++)
+            if ($attrValue eq "")
             {
-                $attrValue .= sprintf("%02X", 0)." ";
+                my $arraySize = $attributeDefList{$AttrID}-> AttributeDefinition::complexType -> ComplexType::arrayDimension;
+                $structSize = $structSize * $arraySize if $arraySize ne "";
+                for(my $i = 0; $i < $structSize; $i++)
+                {
+                    $attrValue .= sprintf("%02X", 0)." ";
+                }
             }
             my $dtsFormatedVal = "[ ".$attrValue."]";
             print {$dtsFHandle} "$attrPrefix$AttrID = $dtsFormatedVal;\n";
