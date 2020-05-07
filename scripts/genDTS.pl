@@ -446,6 +446,19 @@ sub addTargetDataIntoDTSFile
 
     # TODO Need to revisit adding same attributes into list of targets
     $attributeList{"HWAS_STATE"} = AttributeData->new() if ( (!exists $attributeList{"HWAS_STATE"}) and ($indexReqToAdd ne 1) );
+
+    # Adding PHYS_DEV_PATH and PHYS_BIN_PATH attributes value by using PHYS_PATH attribute.
+    # because, PHYS_PATH type is class which is not supported in device tree.
+    if ( $compatible ne "unit-fsi" and $compatible ne "")
+    {
+        my $physicalPathVal = $attributeList{"PHYS_PATH"}->value;
+
+        $attributeList{"PHYS_DEV_PATH"} = AttributeData->new();
+        $attributeList{"PHYS_DEV_PATH"}->value($physicalPathVal);
+
+        $attributeList{"PHYS_BIN_PATH"} = AttributeData->new();
+        $attributeList{"PHYS_BIN_PATH"}->value(getBinaryFormatForPhysPath($physicalPathVal));
+    }
     # Attributes
     foreach my $AttrID ( sort ( keys %attributeList ) )
     {
@@ -738,6 +751,77 @@ sub getEnumVal
     return $enumeratorList[0][1];
 }
 
+sub getBinaryFormatForPhysPath
+{
+    my $physPath = $_[0];
+
+    my ($pathType, $path) = split(/:/, $physPath);
+    my @pathElements = split(/\//, $path);
+    my $pathElementsSize = @pathElements;
+
+    # Reducing one from configured array size and dividing by 2 to get path element size
+    my $configpathElementsSize = ($attributeDefList{"PHYS_BIN_PATH"}->simpleType->arrayDimension - 1) / 2;
+
+    if ( $configpathElementsSize < $pathElementsSize )
+    {
+        print "CRITICAL: The max path element size of PHYS_BIN_PATH is $configpathElementsSize but the given path element size in PHYS_DEV_PATH attribute value[$physPath] is $pathElementsSize\n" if isVerboseReq('C');
+        return "";
+    }
+
+    if ( $pathType eq "physical" )
+    {
+        $pathType = 2;
+    }
+    else
+    {
+        print "CRITICAL: Invalid path type[$pathType] in given path [$physPath]\n" if isVerboseReq('C');
+        return "";
+    }
+
+    # Device tree is big endian format. so, storing path type and size of path elements values
+    # as one byte in big endian format.
+    my $pathtype_size = (0xF0 & ($pathType << 4)) + (0x0F & $pathElementsSize);
+
+    my $convertedBinaryFormat = $pathtype_size.",";
+
+    foreach my $pathEle ( @pathElements )
+    {
+        # splitting path element into type and instance. e.g: sys-0 => type = sys and instance = 0
+        my @pathEleFields = split(/-/, $pathEle);
+        my $found = 0;
+        foreach my $tgtTypeEnum ( @{$attributeDefList{"TYPE"}->simpleType->enumDefinition->enumeratorList} )
+        {
+            if ( uc($pathEleFields[0]) eq $tgtTypeEnum->[0] )
+            {
+                $found = 1;
+                # storing target type and its instance value as binary format.
+                # e.g.: sys-0 => 00 00 => first "00" is enum value of sys and second "00" is hex value of 0
+                $convertedBinaryFormat .= $tgtTypeEnum->[1].",".$pathEleFields[1].",";
+            }
+        }
+
+        if ( $found eq 0 )
+        {
+            print "CRITICAL: The given path element type[$pathEleFields[0]] for path[$physPath] is not found in TYPE attibute enum list.\n" if isVerboseReq('C');
+            return "";
+        }
+    }
+
+    # Adding zero if the path elements size which is found in given PHYS_DEV_PATH
+    # is less than the config size
+    if ( $configpathElementsSize > $pathElementsSize )
+    {
+        for (my $i = $pathElementsSize; $i < $configpathElementsSize; $i++)
+        {
+            # for target type field
+            $convertedBinaryFormat .= "0".",";
+            # for target instance field
+            $convertedBinaryFormat .= "0".",";
+        }
+    }
+
+    return $convertedBinaryFormat;
+}
 ###############################
 #      Subroutine End         #
 ###############################
