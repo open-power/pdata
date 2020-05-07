@@ -556,7 +556,6 @@ sub addTargetDataIntoDTSFile
             elsif ( $simpleType->DataType eq "string")
             {
                 my $property = $attrVal eq "" ? $AttrID : "$AttrID = \"$attrVal\"";
-                print {$dtsFHandle} "$attrPrefix$property;\n";
                 my @arrayValues;
                 push(@arrayValues, $attrVal);
                 setDTSFormatValueForSimpleAttr($AttrID, $simpleType->DataType, \@arrayValues, 1)
