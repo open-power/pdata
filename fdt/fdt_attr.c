@@ -152,18 +152,22 @@ static int spec_size(const char *spec)
 }
 
 int fdt_attr_read_packed(void *fdt, const char *path, const char *name,
-			 const char *spec, uint8_t *value)
+			 const char *spec, uint32_t count, uint8_t *value)
 {
 	uint8_t *buf;
-	int buflen, ret, pos, i;
+	int buflen, ret, pos, i, j;
 
 	if (!spec || spec[0] == '\0')
+		return EINVAL;
+
+	if (count < 1)
 		return EINVAL;
 
 	buflen = spec_size(spec);
 	if (buflen <= 0)
 		return EINVAL;
 
+	buflen = buflen * count;
 	buf = malloc(buflen);
 	if (!buf)
 		return ENOMEM;
@@ -175,36 +179,38 @@ int fdt_attr_read_packed(void *fdt, const char *path, const char *name,
 	}
 
 	pos = 0;
-	for (i=0; i<strlen(spec); i++) {
-		char ch = spec[i];
+	for (j=0; j<count; j++) {
+		for (i=0; i<strlen(spec); i++) {
+			char ch = spec[i];
 
-		if (ch == '1') {
-			uint8_t *b = buf + pos;
-			uint8_t *v = value + pos;
+			if (ch == '1') {
+				uint8_t *b = buf + pos;
+				uint8_t *v = value + pos;
 
-			*v = *b;
-			pos += 1;
+				*v = *b;
+				pos += 1;
 
-		} else if (ch == '2') {
-			uint16_t *b = (uint16_t *)(buf + pos);
-			uint16_t *v = (uint16_t *)(value + pos);
+			} else if (ch == '2') {
+				uint16_t *b = (uint16_t *)(buf + pos);
+				uint16_t *v = (uint16_t *)(value + pos);
 
-			*v = be16toh(*b);
-			pos += 2;
+				*v = be16toh(*b);
+				pos += 2;
 
-		} else if (ch == '4') {
-			uint32_t *b = (uint32_t *)(buf + pos);
-			uint32_t *v = (uint32_t *)(value + pos);
+			} else if (ch == '4') {
+				uint32_t *b = (uint32_t *)(buf + pos);
+				uint32_t *v = (uint32_t *)(value + pos);
 
-			*v = be32toh(*b);
-			pos += 4;
+				*v = be32toh(*b);
+				pos += 4;
 
-		} else if (ch == '8') {
-			uint64_t *b = (uint64_t *)(buf + pos);
-			uint64_t *v = (uint64_t *)(value + pos);
+			} else if (ch == '8') {
+				uint64_t *b = (uint64_t *)(buf + pos);
+				uint64_t *v = (uint64_t *)(value + pos);
 
-			*v = be64toh(*b);
-			pos += 8;
+				*v = be64toh(*b);
+				pos += 8;
+			}
 		}
 	}
 
@@ -213,53 +219,59 @@ int fdt_attr_read_packed(void *fdt, const char *path, const char *name,
 }
 
 int fdt_attr_write_packed(void *fdt, const char *path, const char *name,
-			  const char *spec, uint8_t *value)
+			  const char *spec, uint32_t count, uint8_t *value)
 {
 	uint8_t *buf;
-	int buflen, ret, pos, i;
+	int buflen, ret, pos, i, j;
 
 	if (!spec || spec[0] == '\0')
+		return EINVAL;
+
+	if (count < 1)
 		return EINVAL;
 
 	buflen = spec_size(spec);
 	if (buflen <= 0)
 		return EINVAL;
 
+	buflen = buflen * count;
 	buf = malloc(buflen);
 	if (!buf)
 		return ENOMEM;
 
 	pos = 0;
-	for (i=0; i<strlen(spec); i++) {
-		char ch = spec[i];
+	for (j=0; j<count; j++) {
+		for (i=0; i<strlen(spec); i++) {
+			char ch = spec[i];
 
-		if (ch == '1') {
-			uint8_t *b = buf + pos;
-			uint8_t *v = value + pos;
+			if (ch == '1') {
+				uint8_t *b = buf + pos;
+				uint8_t *v = value + pos;
 
-			*b = *v;
-			pos += 1;
+				*b = *v;
+				pos += 1;
 
-		} else if (ch == '2') {
-			uint16_t *b = (uint16_t *)(buf + pos);
-			uint16_t *v = (uint16_t *)(value + pos);
+			} else if (ch == '2') {
+				uint16_t *b = (uint16_t *)(buf + pos);
+				uint16_t *v = (uint16_t *)(value + pos);
 
-			*b = htobe16(*v);
-			pos += 2;
+				*b = htobe16(*v);
+				pos += 2;
 
-		} else if (ch == '4') {
-			uint32_t *b = (uint32_t *)(buf + pos);
-			uint32_t *v = (uint32_t *)(value + pos);
+			} else if (ch == '4') {
+				uint32_t *b = (uint32_t *)(buf + pos);
+				uint32_t *v = (uint32_t *)(value + pos);
 
-			*b = htobe32(*v);
-			pos += 4;
+				*b = htobe32(*v);
+				pos += 4;
 
-		} else if (ch == '8') {
-			uint64_t *b = (uint64_t *)(buf + pos);
-			uint64_t *v = (uint64_t *)(value + pos);
+			} else if (ch == '8') {
+				uint64_t *b = (uint64_t *)(buf + pos);
+				uint64_t *v = (uint64_t *)(value + pos);
 
-			*b = htobe64(*v);
-			pos += 8;
+				*b = htobe64(*v);
+				pos += 8;
+			}
 		}
 	}
 

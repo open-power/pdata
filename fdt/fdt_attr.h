@@ -83,10 +83,14 @@ int fdt_attr_write(void *fdt, const char *path, const char *name,
  *    A stream of uint32_t, uint8_t, uint16_t, uint32_t is specified as
  *    "4124".
  *
+ * If the pattern is repeated (e.g. array of structures), then count is set to
+ * the repetition count (array size).
+ *
  * @param[in] fdt Flatted device tree pointer
  * @param[in] path Full path of the node in device tree
  * @param[in] name Name of the attribute
  * @param[in] spec Specification of packed integers
+ * @param[in] count Repetition count
  * @param[out] value Value of the attribute
  * @return 0 on success, errno on failure
  *    ENOENT - If the node or attribute does not exist
@@ -95,7 +99,7 @@ int fdt_attr_write(void *fdt, const char *path, const char *name,
  *    EIO    - If there is error reading attribute
  */
 int fdt_attr_read_packed(void *fdt, const char *path, const char *name,
-			 const char *spec, uint8_t *value);
+			 const char *spec, uint32_t count, uint8_t *value);
 
 /**
  * @brief Write complex value of given attribute to device tree
@@ -107,10 +111,14 @@ int fdt_attr_read_packed(void *fdt, const char *path, const char *name,
  *    A stream of uint32_t, uint8_t, uint16_t, uint32_t is specified as
  *    "4124".
  *
+ * If the pattern is repeated (e.g. array of structures), then count is set to
+ * the repetition count (array size).
+ *
  * @param[in] fdt Flatted device tree pointer
  * @param[in] path Full path of the node in device tree
  * @param[in] name Name of the attribute
  * @param[in] spec Specification of packed integers
+ * @param[in] count Repetition count
  * @param[out] value Value of the attribute
  * @return 0 on success, errno on failure
  *    ENOENT - If the node or attribute does not exist
@@ -119,7 +127,7 @@ int fdt_attr_read_packed(void *fdt, const char *path, const char *name,
  *    EIO    - If there is error writing attribute
  */
 int fdt_attr_write_packed(void *fdt, const char *path, const char *name,
-			  const char *spec, uint8_t *value);
+			  const char *spec, uint32_t count, uint8_t *value);
 
 #endif /* __FDT_ATTR_H__ */
 
