@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <cassert>
+#include <cstring>
 #include <iostream>
 
 #include "dt_api.H"
@@ -32,6 +33,19 @@ namespace fapi2
                 std::cerr << "pdbg_target_get_attribute_packed failed" << std::endl;
                 return 1; // FAPI2_RC_INVALID_ATTR_GET
             }
+        }
+        else if ( attrTypeName == "string" )
+        {
+            const void *buf;
+            size_t total_size;
+            buf = pdbg_target_property(target, attrIdWONS.c_str(), &total_size);
+            if(!buf)
+            {
+                return 1; // FAPI2_RC_INVALID_ATTR_GET
+            }
+            // string type attribute values are maintained in array of characters.
+            // so, no endian issue
+            std::memcpy(val, buf, total_size);
         }
         else
         {
