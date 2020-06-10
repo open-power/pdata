@@ -4,6 +4,7 @@ AM_MAKEFLAGS = --no-print-directory
 AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 
 lib_LTLIBRARIES =
+datadir = ${datarootdir}/pdata
 data_DATA =
 CLEANFILES =
 
@@ -24,7 +25,8 @@ pkgconfiglibdir = ${libdir}/pkgconfig
 pkgconfiglib_DATA = libdt-api/libdt-api.pc
 lib_LTLIBRARIES += libdt-api.la
 include_HEADERS = attributes_info.H libdt-api/dt_api.H
-CLEANFILES += attributes_info.H
+data_DATA += attributes_info.db
+CLEANFILES += attributes_info.H attributes_info.db
 endif
 
 if BUILD_DYNAMIC_DT
@@ -76,8 +78,14 @@ attributes_SOURCES = \
 attributes_LDADD = libdtm.la
 attributes_LDFLAGS = -lm
 
+# attribute_info.H and attribute_info.db cannot be built in parallel
+.NOTPARALLEL:
+
 attributes_info.H:
 	$(srcdir)/scripts/dt_generate.sh header $@
+
+attributes_info.db:
+	$(srcdir)/scripts/dt_generate.sh infodb $@
 
 libdt_api_la_SOURCES = libdt-api/dt_api.C \
                        libdt-api/dt_api.H

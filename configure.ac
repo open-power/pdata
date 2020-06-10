@@ -45,12 +45,12 @@ fi
 AM_CONDITIONAL([BUILD_TOOLS], [test x"$ARCH" != "xarm" -a $FDT -eq 1])
 AM_CONDITIONAL([BUILD_LIBS], [test $FDT -eq 1])
 
-AC_ARG_ENABLE([gen_attrsinfoheader],
-	AS_HELP_STRING([--enable-gen_attrsinfoheader],
+AC_ARG_ENABLE([gen_attrsinfo],
+	AS_HELP_STRING([--enable-gen_attrsinfo],
 		       [Generate attributes API based on dynamic device tree]))
-AM_CONDITIONAL([BUILD_ATTR_API], [test "x$enable_gen_attrsinfoheader" = "xyes"])
+AM_CONDITIONAL([BUILD_ATTR_API], [test "x$enable_gen_attrsinfo" = "xyes"])
 
-if test "x$enable_gen_attrsinfoheader" = "xyes" ; then
+if test "x$enable_gen_attrsinfo" = "xyes" ; then
 	if test $FDT -eq 0 ; then
 		AC_MSG_ERROR([FDT library not fond])
 	fi
