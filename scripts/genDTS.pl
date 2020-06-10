@@ -577,59 +577,13 @@ sub addTargetDataIntoDTSFile
         elsif ( $attrType eq "complexType" )
         {
             my $attrValue = $attributeList{$AttrID} -> AttributeData::value;
-            my @listOfComplexObj = @{$attributeDefList{$AttrID}-> AttributeDefinition::complexType -> ComplexType::listOfComplexTypeFields};
 
-            # Need to prepare spec for struct type value into byte format
-            my $structSize;
-            my $bitsCount = 0;
-            my @fieldValues;
-            foreach my $complexfield (@listOfComplexObj)
-            {
-                push(@fieldValues, $complexfield->default);
-
-                my $fieldType = $complexfield->type;
-                if ( $complexfield->bits ne "" )
-                {
-                    # Addeing each field bit field required bits count and then
-                    # If count is crossed 8 then making spec as one an reducing 8 and continuing
-                    $bitsCount += $complexfield->bits;
-                    if ( $bitsCount > 8)
-                    {
-                        $bitsCount -= 8;
-                        $structSize += 1;
-                    }
-                }
-                else
-                {
-                    my $getNumericValFromType = $fieldType;
-                    $getNumericValFromType =~ s/\D//g;
-                    $structSize += $getNumericValFromType/8;
-                }
-            }
-
-            # Adding spec as 1 if bit count is less than 8 after reading all fields
-            if ( $bitsCount < 8 and $bitsCount != 0)
-            {
-                $structSize += 1;
-            }
-            elsif ( $bitsCount >= 8 )
-            {
-                # Adding spec as 1 continuously till reaching byte count into 0
-                # (Byte count getting by dividing bit count by 8)
-                my $byteCnt = $bitsCount / 8;
-                while( $byteCnt > 0 ) { $structSize += 1; $byteCnt -= 1; }
-            }
-            # All complex type default value are zeros so adding directly as zeros based struct size
             if ($attrValue eq "")
             {
-                my $arraySize = $attributeDefList{$AttrID}-> AttributeDefinition::complexType -> ComplexType::arrayDimension;
-                $structSize = $structSize * $arraySize if $arraySize ne "";
-                for(my $i = 0; $i < $structSize; $i++)
-                {
-                    $attrValue .= sprintf("%02X", 0)." ";
-                }
+                my @ret = getSpecAndDefValForComplexTypeAttr(\@{$attributeDefList{$AttrID}->complexType->listOfComplexTypeFields}, $attributeDefList{$AttrID}->complexType->arrayDimension);
+                $attrValue = @ret[1];
             }
-            my $dtsFormatedVal = "[ ".$attrValue."]";
+            my $dtsFormatedVal = "[".$attrValue." ]";
             print {$dtsFHandle} "$attrPrefix$AttrID = $dtsFormatedVal;\n";
         }
     }
