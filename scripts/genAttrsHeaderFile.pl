@@ -391,7 +391,17 @@ sub prepareSimpleTypeAttrTypeInfo
         
         my $type = $simpleObj->subType;
         $type = "char" if $type eq "string";
+        $type =~ s/enum_//g if $type =~ m/enum_/;
         print {$AIHeaderFH} "\ttypedef $type $attrPrefix$attrID\_Type$dimData;\n";
+        if ($simpleObj->subType =~ m/enum_/)
+        {
+            print {$AIHeaderFH} "\tenum $attrPrefix$attrID\_Enum\n\t{\n";
+            foreach my $enumpair ( @{$simpleObj->enumDefinition->enumeratorList})
+            {
+                print {$AIHeaderFH} "\t\tENUM_$attrPrefix$attrID\_$enumpair->[0] = $enumpair->[1],\n";
+            }
+            print {$AIHeaderFH} "\t};\n";
+        }
     }
     elsif ( $simpleObj->DataType eq "enum" )
     {

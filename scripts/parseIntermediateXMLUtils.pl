@@ -303,7 +303,7 @@ sub parseAttributeDefinition
                     # Checking if array have enum type then enum have primitive type as well so cancat enum plus primitive type
                     if( $attrDef->exists('simpleType/enumeration') )
                     {
-                        $primitiveType = "enum_".$primitiveType if $attrDef->findvalue('simpleType/enumeration') ne "";
+                        $primitiveType = "enum_".$primitiveType if $attrDef->exists('simpleType/enumeration');
                         $SimpleType->default($attrDef->findvalue('simpleType/enumeration/default'));
                         $SimpleType->enumId($attrDef->findvalue('simpleType/enumeration/id'));
 
