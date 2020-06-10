@@ -96,6 +96,10 @@ my %MAX_INST_PER_PARENT =
     OSCREFCLK => 1, # Default to 1 for now
     PERV      => 56, # Number of PERVs per PROC
                      # Only 39 used, but they are sparsely populated
+    PCICLKENDPT => 1, # Number of PCICLKENDPTs per PROC
+    LPCREFCLKENDPT => 1, # Number of LPCREFCLKENDPTs per PROC
+    OMIC_CLK => 1, # Number of OMIC_CLK per PROC
+    CAPP => 2, # Number of CAPP per PROC
 );
 
 # The maximum number of target instances per PROC.  Please use wrapper methods
@@ -155,6 +159,10 @@ my %MAX_INST_PER_PROC =
     SBE        => 1,
     TPM        => 1,
     SMPGROUP   => 8,
+    PCICLKENDPT => getMaxInstPerParent("PCICLKENDPT"),
+    LPCREFCLKENDPT => getMaxInstPerParent("LPCREFCLKENDPT"),
+    OMIC_CLK => getMaxInstPerParent("OMIC_CLK"),
+    CAPP => getMaxInstPerParent("CAPP"),
 );
 
 
@@ -543,6 +551,10 @@ sub postProcessTargets
         {
             postProcessTpm($targetObj, $target);
         }
+        elsif ($type eq "IOHS")
+        {
+            postProcessIohs($targetObj, $target);
+        }
 
         postProcessIpmiSensors($targetObj, $target);
     } # end foreach my $target (@targets)
@@ -656,8 +668,104 @@ sub errorCheckTheTargets
     }
 } # end sub errorCheckTheTargets
 
+# @function getStaticAbsLocationCode
+#
+# @brief Returns the static portion of the absolution location code for a given
+#     target.  The returned location code does -not- reflect the chassis
+#     location code prefix (including dash), but otherwise includes all other
+#     components of the final location code.  It will be up to the firmware to
+#     dynamically add the chassis location code prefix to form a complete
+#     location code.
+#
+#     For example, if chip 0's full location code is: U78DA.ND1.1234567-P0-C0,
+#     this API will return it as P0-C0.
+#
+# @param[in] $i_targetObj Global target object (required)
+# @param[in] $i_target    The target to compute static portion of the absolute
+#     location code for (required)
+#
+# @return The static portion of the absolute location code for the target, empty
+#     on error.
+sub getStaticAbsLocationCode
+{
+    my $i_targetObj = shift;
+    my $i_target = shift;
+    my $tempTarget = $i_target;
+
+    my @locationCodeArray = ();
+    my $arrayIndex = 0;
+    my $locationCode = '';
+    my $locationCodeType = '';
+    my $tempLocationCode = '';
+
+    if($i_targetObj->getTargetParent($tempTarget) ne '')
+    {
+        my $done = 0;
+        do
+        {
+            if(!defined $tempTarget)
+            {
+                $done = 1;
+            }
+            else
+            {
+                if(!$i_targetObj->isBadAttribute($tempTarget, "LOCATION_CODE"))
+                {
+                    $tempLocationCode = $i_targetObj->getAttribute($tempTarget,
+                        "LOCATION_CODE");
+                }
+                else
+                {
+                    $tempLocationCode = '';
+                }
+
+                if(!$i_targetObj->isBadAttribute($tempTarget,
+                        "LOCATION_CODE_TYPE"))
+                {
+                    $locationCodeType = $i_targetObj->getAttribute($tempTarget,
+                        "LOCATION_CODE_TYPE");
+                }
+                else
+                {
+                    $locationCodeType = '';
+                }
+
+                if($locationCodeType eq '' || $locationCodeType eq 'ASSEMBLY' ||
+                    $tempLocationCode eq '')
+                {
+                    $tempTarget = $i_targetObj->getTargetParent($tempTarget);
+                }
+                elsif($locationCodeType eq 'RELATIVE')
+                {
+                    $locationCodeArray[$arrayIndex++] = $tempLocationCode;
+                    $tempTarget = $i_targetObj->getTargetParent($tempTarget);
+                }
+                elsif($locationCodeType eq 'ABSOLUTE')
+                {
+                    $locationCodeArray[$arrayIndex++] = $tempLocationCode;
+                    $done = 1;
+                }
+            }
+
+        } while(!$done);
+    }
+
+    my $dash='';
+    for(my $i = $arrayIndex; $i > 0; $i--)
+    {
+        $locationCode = $locationCode.$dash.$locationCodeArray[$i-1];
+        $dash="-";
+    }
+
+    return $locationCode;
+}
+
 #--------------------------------------------------
 # @brief Write out the results to an XML file
+#
+# @note Blank attributes are skipped and not printed out within this method
+#       call chain: Targets.pm::printXML -> Targets.pm::printTarget
+#                   -> Targets.pm::printAttribute
 #
 # @param [in] $targetObj - The global target object.
 #--------------------------------------------------
@@ -795,6 +903,20 @@ sub processNode
     my $sysParentPos = $targetObj->getAttribute($sysParent, "ORDINAL_ID");
     my $sysParentAffinity = $targetObj->getAttribute($sysParent, "AFFINITY_PATH");
     my $sysParentPhysical = $targetObj->getAttribute($sysParent, "PHYS_PATH");
+
+    # Hostboot does not model the backplane, just the node that holds the
+    # backplane, so compute the backplane's location code and set that value
+    # on the node target, then clear out the value on the backplane level.
+    foreach my $child (@{$targetObj->getTargetChildren($target)})
+    {
+        my $childTargetType = $targetObj->getTargetType($child);
+        if ($childTargetType eq "card-motherboard")
+        {
+            my $staticAbsLocationCode = getStaticAbsLocationCode($targetObj,$child);
+            $targetObj->setAttribute($target, "STATIC_ABS_LOCATION_CODE",$staticAbsLocationCode);
+            $targetObj->setAttribute($child, "STATIC_ABS_LOCATION_CODE","");
+        }
+    }
 
     # For high-end, multi-drawer systems there may be a control node that
     # contains service processor logic but no CEC (processor) logic. Thus,
@@ -1064,6 +1186,9 @@ sub processDdimmAndChildren
     my $nodeParentPos = $targetObj->getAttribute($nodeParent, "ORDINAL_ID");
     my $nodeParentAffinity =$targetObj->getAttribute($nodeParent, "AFFINITY_PATH");
     my $nodeParentPhysical = $targetObj->getAttribute($nodeParent, "PHYS_PATH");
+
+    my $staticAbsLocationCode = getStaticAbsLocationCode($targetObj,$target);
+    $targetObj->setAttribute($target, "STATIC_ABS_LOCATION_CODE",$staticAbsLocationCode);
 
     # Get the FAPI_NAME by using the data gathered above.
     my $fapiName = $targetObj->getFapiName($type, $nodeParentPos, $dimmPosPerSystem);
@@ -1523,6 +1648,9 @@ sub processTpm
     my $nodeParentAffinity = $targetObj->getAttribute($nodeParent, "AFFINITY_PATH");
     my $nodeParentPhysical = $targetObj->getAttribute($nodeParent, "PHYS_PATH");
 
+    my $staticAbsLocationCode = getStaticAbsLocationCode($targetObj,$target);
+    $targetObj->setAttribute($target, "STATIC_ABS_LOCATION_CODE",$staticAbsLocationCode);
+
     # Get the TPM's position for further use below
     my $tpmPosPerSystem = $targetObj->getTargetPosition($target);
 
@@ -1661,7 +1789,9 @@ sub iterateOverChiplets
                 #So, we can avoid them with this conditional
                 if ($unit_type ne "PCI" && $unit_type ne "NA" &&
                     $unit_type ne "FSI" && $unit_type ne "PSI" &&
-                    $unit_type ne "SYSREFCLKENDPT" && $unit_type ne "MFREFCLKENDPT")
+                    $unit_type ne "SYSREFCLKENDPT" &&
+                    $unit_type ne "PCICLKENDPT" &&
+                    $unit_type ne "LPCREFCLKENDPT")
                 {
 
                     # @TODO Remove this check once ABUS and XBUS
@@ -2025,8 +2155,39 @@ sub setEepromAttributeForDdimm
             "connection for DDIMM ($target).\nError";
     }
 
-    # Get the first I2C connection
-    $i2cConn = $i2cConn->{CONN}[0];
+    my $connectionFound = 0;
+
+    # To get the correct i2c connection we must verify that we are getting the
+    # PIB connection type and not the CFAM connection. Rainier and Denali both
+    # use the PIB connection but Denali has a CFAM connection as well.
+    foreach my $connection (@{$i2cConn->{CONN}})
+    {
+        my $connectionType = $targetObj->getAttribute($connection->{SOURCE},
+                                                      "I2C_CONNECTION_TYPE");
+        if ($connectionType eq "PIB")
+        {
+            $i2cConn = $connection;
+            $connectionFound = 1;
+            last;
+        }
+    }
+
+    if ($connectionFound == 0)
+    {
+        print "\nsetEepromAttributeForDdimm: ERROR: Expected to find a ".
+            "PIB I2C connection for DIMM ($target).".
+            "\nPotential MRW I2C_CONNECTION_TYPE error.";
+        print"\n Connections for this DIMM:";
+        foreach my $connection (@{$i2cConn->{CONN}})
+        {
+            print "\n". Dumper($connection);
+            my $type = $targetObj->getAttribute($connection->{SOURCE},
+                                                "I2C_CONNECTION_TYPE");
+            print "\n Connection Type: ". $type ."\n";
+        }
+        select()->flush();
+        die;
+    }
 
     # Sanity check,  Make sure destination target is the same as given target
     my $destTarget = $targetObj->getTargetParent($i2cConn->{DEST_PARENT});
@@ -2264,19 +2425,14 @@ sub postProcessProcessor
     my $targetType = targetTypeSanityCheck($targetObj, $target, "PROC");
     validateTargetHasBeenPreProcessed($targetObj, $target);
 
-    #########################
-    ## In serverwiz, processor instances are not unique
-    ## because plugged into socket
-    ## so processor instance unique attributes are socket level.
-    ## The grandparent is guaranteed to be socket.
-    my $socket_target =
-       $targetObj->getTargetParent($targetObj->getTargetParent($target));
-    $targetObj->copyAttribute($socket_target,$target,"LOCATION_CODE");
+    # In serverwiz, processor instances are not unique because they are plugged
+    # into a socket, so processor instance unique attributes are socket level.
+    # The parent is guaranteed to be a module, the grandparent a socket
+    my $module_target = $targetObj->getTargetParent($target);
+    my $socket_target = $targetObj->getTargetParent($module_target);
 
-    ## Module attibutes are inherited into the proc target
-    my $module_target =
-       $targetObj->getTargetParent($target);
-    $targetObj->copyAttribute($module_target,$target,"LOCATION_CODE");
+    my $staticAbsLocationCode = getStaticAbsLocationCode($targetObj,$target);
+    $targetObj->setAttribute($target, "STATIC_ABS_LOCATION_CODE",$staticAbsLocationCode);
 
     ## Copy PCIE attributes from socket
     ## Copy PBAX attributes from socket
@@ -2541,7 +2697,7 @@ sub postProcessProcessor
 #--------------------------------------------------
 # @brief Post process targets of type OMI
 #
-# @detials This methods corrects the OMIC_PATH attribute.  Also calculates and
+# @details This method corrects the OMIC_PATH attribute.  Also calculates and
 #          sets the attribute OMI_INBAND_BAR_BASE_ADDR_OFFSET.
 #
 # @note The majority of the OMI's attributes are done via:
@@ -2668,7 +2824,10 @@ sub postProcessApss {
     my $targetObj=shift;
     my $target=shift;
 
-    my $systemTarget = $targetObj->getTargetParent($target);
+    my $encTarget = $targetObj->getTargetParent($target);
+    my $nodeTarget = $targetObj->getTargetParent($encTarget);
+    my $systemTarget = $targetObj->getTargetParent($nodeTarget);
+
     my @sensors;
     my @channel_ids;
     my @channel_offsets;
@@ -2680,14 +2839,11 @@ sub postProcessApss {
     {
         if ($targetObj->getMrwType($child) eq "APSS_SENSOR")
         {
-            my $entity_id=$targetObj->
-                 getAttribute($child,"IPMI_ENTITY_ID");
-            my $sensor_id=$targetObj->
-                 getAttribute($child,"IPMI_SENSOR_ID");
-            my $sensor_type=$targetObj->
-                 getAttribute($child,"IPMI_SENSOR_TYPE");
-            my $sensor_evt=$targetObj->
-                 getAttribute($child,"IPMI_SENSOR_READING_TYPE");
+             #TODO add PLDM specific processing here
+             my $entity_id = 0;
+             my $sensor_id = 0;
+             my $sensor_type=0;
+             my $sensor_evt=0;
 
             #@fixme-RTC:175309-Remove deprecated support
             my $name;
@@ -2696,27 +2852,10 @@ sub postProcessApss {
             my $channel_gain;
             my $channel_offset;
             my $channel_ground;
-            # Temporarily allow both old and new attribute names until
-            #  all of the SW2 xmls get in sync
-            if (!$targetObj->isBadAttribute($child,"IPMI_SENSOR_NAME_SUFFIX") )
+
+            if ($targetObj->getTargetType($child) eq "apss.unit-adc-generic")
             {
-                # Using deprecated names
-                $name = $targetObj->
-                  getAttribute($child,"IPMI_SENSOR_NAME_SUFFIX");
-                $channel = $targetObj->
-                  getAttribute($child,"ADC_CHANNEL_ASSIGNMENT");
-                $channel_id = $targetObj->
-                  getAttribute($child,"ADC_CHANNEL_ID");
-                $channel_gain = $targetObj->
-                  getAttribute($child,"ADC_CHANNEL_GAIN");
-                $channel_offset = $targetObj->
-                  getAttribute($child,"ADC_CHANNEL_OFFSET");
-                $channel_ground = $targetObj->
-                  getAttribute($child,"ADC_CHANNEL_GROUND");
-            }
-            else
-            {
-                # Using correct/new names
+                #Using correct/new names for the APSS entries
                 $name = $targetObj->
                   getAttribute($child,"FUNCTION_NAME");
                 $channel = $targetObj->
@@ -2725,10 +2864,21 @@ sub postProcessApss {
                   getAttribute($child,"FUNCTION_ID");
                 $channel_gain = $targetObj->
                   getAttribute($child,"GAIN");
+
+                #Channel Gain is reprsented in decimal format in the MRW
+                # multiply by 1000 so it is a valid attribute value
+                $channel_gain = $channel_gain * 1000;
+
                 $channel_offset = $targetObj->
                   getAttribute($child,"OFFSET");
+
+                #Channel Offset is reprsented in decimal format in the MRW
+                # multiply by 1000 so it is a valid attribute value
+                $channel_offset = $channel_offset * 1000;
+
+#Temporarily use ADC_CHANNEL_GROUND until GND defined in MRW
                 $channel_ground = $targetObj->
-                  getAttribute($child,"GND");
+                  getAttribute($child,"ADC_CHANNEL_GROUND");
             }
 
             $name=~s/\n//g;
@@ -2740,6 +2890,7 @@ sub postProcessApss {
             {
                 $sensor_id_str = sprintf("0x%02X",oct($sensor_id));
             }
+
             if ($channel ne "")
             {
                 $sensors[$channel] = $sensor_id_str;
@@ -2813,6 +2964,7 @@ sub postProcessApss {
                  "APSS_GPIO_PORT_PINS",join(',',@gpios));
 
     convertNegativeNumbers($targetObj,$systemTarget,"ADC_CHANNEL_OFFSETS",32);
+
 } # end sub postProcessApss
 
 
@@ -2951,6 +3103,329 @@ sub postProcessTpm
     }
 } # end sub postProcessTpm
 
+#--------------------------------------------------
+# @brief Post process targets of type IOHS
+#
+# @details This method sets up the SMP bus for the IOHS.
+#
+# @note The majority of the IOHS' attributes are done via:
+#       processTargets()->processProcessorAndChildren()->
+#       iterateOverChiplets()->setCommonAttrForChiplet()
+#
+# @param[in] $targetObj - The global target object blob
+# @param[in] $target    - The IOHS target
+#--------------------------------------------------
+sub postProcessIohs
+{
+    my $targetObj    = shift;
+    my $target       = shift;
+
+    # Some sanity checks.  Make sure we are processing the correct target type
+    # and make sure the target has been already processed.
+    my $targetType = targetTypeSanityCheck($targetObj, $target, "IOHS");
+    validateTargetHasBeenPreProcessed($targetObj, $target);
+
+    my $iohsConfigMode = $targetObj->getAttribute($target, "IOHS_CONFIG_MODE");
+    if ($iohsConfigMode eq "SMPA")
+    {
+        # Iterate over the children looking for ABUS
+        foreach my $child (@{ $targetObj->getTargetChildren($target) })
+        {
+            my $childType = $targetObj->getType($child);
+            if ($childType eq "ABUS")
+            {
+                processSmpA($targetObj, $child, $target);
+            }
+        } # foreach my $child (@{ $targetObj->getTargetChildren($target) })
+    }
+    elsif ($iohsConfigMode eq "SMPX")
+    {
+        # Iterate over the children looking for XBUS
+        foreach my $child (@{ $targetObj->getTargetChildren($target) })
+        {
+            my $childType = $targetObj->getType($child);
+            if ($childType eq "XBUS")
+            {
+                processSmpX($targetObj, $child, $target);
+            }
+        } # foreach my $child (@{ $targetObj->getTargetChildren($target) })
+    } # end if ($iohsConfigMode eq "SMPA") ... elseif ...
+
+} # end sub postProcessIohs
+
+#--------------------------------------------------
+# @brief Set up the SMPX bus for the IOHS target
+#
+# @param[in] $targetObj    - The global target object blob
+# @param[in] $target       - The XBUS target
+# @param[in] $parentTarget - The IOHS target
+#--------------------------------------------------
+sub processSmpX
+{
+    my $targetObj     = shift;
+    my $target        = shift;
+    my $parentTarget  = shift;
+
+    my $busConnection = $targetObj->getFirstConnectionBus($target);
+
+    # Only proceed if a bus connection exists ...
+    if ($busConnection ne "")
+    {
+        ## Ascertain the configuration
+        # Create some useful variables to help w/sorting out the configuration
+        my $defaultConfig = "d";
+        my $wrapConfig    = "w";
+        my $config = $defaultConfig;
+
+        if ($targetObj->isBusConnBusAttrDefined($busConnection, "CONFIG_APPLY"))
+        {
+            $config = $targetObj->getBusConnBusAttr($busConnection, "CONFIG_APPLY");
+        }
+
+        # Validate the config value retrieved. If none retrieved or no config
+        # given, then use the default value.
+        if ($config eq "")
+        {
+            if (0 == $targetObj->{stealth_mode})
+            {
+                #print STDOUT "No value found for CONFIG_APPLY, default to using default value ($defaultConfig)\n";
+            }
+            $config = $defaultConfig;
+        }
+
+        # The CONFIG_APPLY bus attribute carries a comma separated values for each
+        # X-bus connection. It can currently take the following values.
+        # "w" - This connection is applicable only in wrap config
+        # "d" - This connection is applicable in default config (non-wrap mode).
+        # If CONFIG_APPLY does not match the system configuration we are
+        # running for, then mark the peers null.
+        # For example, in wrap config, CONFIG_APPLY is expected to have "w"
+        # If "w" is not there, then we skip the connection and mark peers
+        # as NULL
+        my $systemConfig = $targetObj->{system_config};
+        if (($systemConfig eq $wrapConfig && $config =~ /$wrapConfig/) ||
+           ($systemConfig ne $wrapConfig && $config =~ /$defaultConfig/))
+        {
+            # Don't nullify the configuration attributes
+            my $nullifyFlag = false;
+            setCommonConfigAttributes($targetObj, $target, $parentTarget,
+                                      $busConnection, $nullifyFlag);
+        }
+        else
+        {
+            # Nullify the configuration attributes
+            my $nullifyFlag = true;
+            setCommonConfigAttributes($targetObj, $target, $parentTarget,
+                                      $busConnection, $nullifyFlag);
+        } # end (($system_config eq $wrapConfig ...
+    } # end if ($busConnection ne "")
+} # end sub processSmpX
+
+
+#--------------------------------------------------
+# @brief Set up the SMPA bus for the IOHS target
+#
+# @param[in] $targetObj    - The global target object blob
+# @param[in] $target       - The ABUS target
+# @param[in] $parentTarget - The IOHS target
+#--------------------------------------------------
+sub processSmpA
+{
+    my $targetObj       = shift;
+    my $target          = shift;
+    my $parentTarget    = shift;
+
+    my $busConnection = $targetObj->getFirstConnectionBus($target);
+
+    # Only proceed if a bus connection exists ...
+    if ($busConnection ne "")
+    {
+        ## Ascertain the configuration
+        # Create some useful variables to help w/sorting out the configuration
+        my $applyConfiguration = 0;
+        my $twoNode = "2";
+        my $threeNode = "3";
+        my $fourNode = "4";
+        my $config = "";
+
+        if ($targetObj->isBusAttributeDefined($target, 0, "CONFIG_APPLY"))
+        {
+            $config = $targetObj->getBusAttribute($target, 0, "CONFIG_APPLY");
+        }
+
+        # The CONFIG_APPLY bus attribute carries a comma separated values
+        # for each A-bus connection. For eg.,
+        # "2,3,4" - This connection is applicable in 2,3 and 4 node config
+        # "w" - This connection is applicable only in wrap config
+        # "2" - This connection is applicable only in 2 node config
+        # "4" - This connection is applicable only in 4 node config
+        # The below logic looks for these values (w, 2, 3, and 4) and decides
+        # whether a certain A-bus connection has to be considered or not.
+        # If user has passed 2N as argument, then we consider only those
+        # A-bus connections where value "2" is present in the configuration.
+        my $systemConfig = $targetObj->{system_config};
+        if ($systemConfig eq "2N" && $config =~ /$twoNode/)
+        {
+            # MRW configuration matches system configuration for a 2 node,
+            # therefore apply configuration.
+            $applyConfiguration = 1;
+        }
+        elsif ($systemConfig eq "")
+        {
+            # No system configuration, is MRW configuration for a 3 or 4 node system?
+            # This will skip any connections specific to ONLY 2 node systems
+            if($config =~ /$threeNode/ || $config =~ /$fourNode/)
+            {
+                # MRW configuration is for a 3 or 4 node system,
+                # therefore apply configuration.
+                $applyConfiguration = 1;
+            }
+        }
+        elsif ($config =~ /$systemConfig/)
+        {
+            # If system configuration matches the MRW configuration, then
+            # apply configuration. Ex: wrap config
+            $applyConfiguration = 1;
+        }
+        else
+        {
+            # No valid configuration given via MRW nor system,
+            # therefore DO NOT apply configuration.
+            $applyConfiguration = 0;
+        }
+
+        # Only proceed if a valid configuration has been ascertained  ...
+        if ($applyConfiguration eq 1)
+        {
+            my $busSrcTarget = "";
+            my $busDestTarget = "";
+
+            # Don't nullify the configuration attributes
+            my $nullifyFlag = false;
+            ($busSrcTarget, $busDestTarget) =
+                   setCommonConfigAttributes($targetObj, $target, $parentTarget,
+                                             $busConnection, $nullifyFlag);
+
+=comment
+Currently attribute EI_BUS_TX_MSBSWAP is not implemented.   Once implemented
+uncomment this block and reactivate this code snippet.
+            # Set bus transmit MSBSWAP for both source and destination targets
+            if ($targetObj->isBusConnBusAttrDefined($busConnection, "SOURCE_TX_MSBSWAP"))
+            {
+                my $srcTxMsbSawp = $targetObj->getBusConnBusAttr($busConnection, "SOURCE_TX_MSBSWAP");
+                $targetObj->setAttribute($busSrcTarget, "EI_BUS_TX_MSBSWAP",  $srcTxMsbSawp);
+            }
+            if ($targetObj->isBusConnBusAttrDefined($busConnection, "DEST_TX_MSBSWAP"))
+            {
+                my $destTxMsbSawp = $targetObj->getBusConnBusAttr($busConnection, "DEST_TX_MSBSWAP");
+                $targetObj->setAttribute($busDestTarget, "EI_BUS_TX_MSBSWAP",  $destTxMsbSawp);
+            }
+=cut
+
+            # Set the wrap config for both source and destination targets
+            my $linkSet = "SET_NONE";
+
+            if ($targetObj->isBusConnBusAttrDefined($busConnection, "MFG_WRAP_TEST_ABUS_LINKS_SET"))
+            {
+                $linkSet  = $targetObj->getBusConnBusAttr($busConnection, "MFG_WRAP_TEST_ABUS_LINKS_SET");
+            }
+            $targetObj->setAttribute($busSrcTarget,  "MFG_WRAP_TEST_ABUS_LINKS_SET", $linkSet);
+            $targetObj->setAttribute($busDestTarget, "MFG_WRAP_TEST_ABUS_LINKS_SET", $linkSet);
+        } # end if($applyConfiguration eq 1)
+    } # end if ($busConnection ne "")
+} # end sub processSmpA
+
+#--------------------------------------------------
+# @brief Set the common configuration attributes, 'PEER_TARGET', 'PEER_PATH'
+#        'PEER_HUID' and 'BUS_TYPE', that are associated with configuring a bus
+#
+# @param[in] $targetObj     - The global target object blob
+# @param[in] $target        - The BUS (ABUS/XBUS) target
+# @param[in] $parentTarget  - The IOHS target - the BUS parent target
+# @param[in] $busConnection - Handle to the bus connection configuration info
+# @param[in] $nullifyFlag   - If false, then config attributes with valid data,
+#                             else nullify the config attributes
+# @return - A multiple variable return
+#         $Var1 - The bus source absolute path
+#         $Var2 - The bus destination absolute path
+#--------------------------------------------------
+sub setCommonConfigAttributes
+{
+    my $targetObj      = shift;
+    my $target         = shift;
+    my $parentTarget   = shift;
+    my $busConnection  = shift;
+    my $nullifyFlag    = shift;
+
+    ## Get the source and destination paths of the target ends, do some sanity
+    ## checks and expand the paths from relative to absolute.
+    # Get the bus source and destination paths.
+    my $busSrcPath  = $busConnection->{source_path};
+    my $busDestPath = $busConnection->{dest_path};
+
+    # Remove the ending, extraneous '/' character
+    chop($busSrcPath);
+    chop($busDestPath);
+
+    # Sanity check. The parent target paths should be made up of the source
+    # path. If not, then there is an issue with the MRW or Targets.pm
+    if ($parentTarget !~ /$busSrcPath/)
+    {
+        select()->flush(); # flush buffer before spewing out error message
+        die "ERROR: Target ($parentTarget) path is not comprised of the bus " .
+            "source path ($busSrcPath).  Possible issue with MRW or Targets.pm ";
+    }
+
+    # Get the missing absolute path data
+    my $prependingPathData = $parentTarget;
+    $prependingPathData =~ s/$busSrcPath//;
+
+    # Convert the target's relative path to an absolute path.  Targets.pm
+    # can only work with targets that have absolute paths.
+    my $busSrcTarget = $prependingPathData . $busSrcPath;
+    my $busDestTarget = $prependingPathData . $busDestPath;
+
+    if ( $nullifyFlag == false )
+    {
+        ## Get and set attributes of the target ends with valid data
+        # Pre-fetch the BUS_TYPE, HUID and PHYS_PATH of the source and
+        # destination targets
+        my $busType = $busConnection->{bus_type};
+
+        my $busSrcHuid = $targetObj->getAttribute($busSrcTarget, "HUID");
+        my $busSrcPhysicalPath = $targetObj->getAttribute($busSrcTarget, "PHYS_PATH");
+
+        my $busDestHuid = $targetObj->getAttribute($busDestTarget, "HUID");
+        my $busDestPhysicalPath = $targetObj->getAttribute($busDestTarget, "PHYS_PATH");
+
+        # Set attributes for the target ends
+        $targetObj->setAttribute($busSrcTarget, "PEER_TARGET", $busDestPhysicalPath);
+        $targetObj->setAttribute($busSrcTarget, "PEER_PATH",   $busDestPhysicalPath);
+        $targetObj->setAttribute($busSrcTarget, "PEER_HUID",   $busDestHuid);
+        $targetObj->setAttribute($busSrcTarget, "BUS_TYPE",    $busType);
+
+        $targetObj->setAttribute($busDestTarget, "PEER_TARGET", $busSrcPhysicalPath);
+        $targetObj->setAttribute($busDestTarget, "PEER_PATH",   $busSrcPhysicalPath);
+        $targetObj->setAttribute($busDestTarget, "PEER_HUID",   $busSrcHuid);
+        $targetObj->setAttribute($busDestTarget, "BUS_TYPE",    $busType);
+    }
+    else
+    {
+        # Nullify these attributes for the target ends
+        $targetObj->setAttribute($busSrcTarget, "PEER_TARGET", "NULL");
+        $targetObj->setAttribute($busSrcTarget, "PEER_PATH",   "physical:na");
+        $targetObj->setAttribute($busSrcTarget, "PEER_HUID",   "NULL");
+        $targetObj->setAttribute($busSrcTarget, "BUS_TYPE",    "NA");
+
+        $targetObj->setAttribute($busDestTarget, "PEER_TARGET", "NULL");
+        $targetObj->setAttribute($busDestTarget, "PEER_PATH",   "physical:na");
+        $targetObj->setAttribute($busDestTarget, "PEER_HUID",   "NULL");
+        $targetObj->setAttribute($busDestTarget, "BUS_TYPE",    "NA");
+    } # end if ( $nullifyFlag == false ) ... else ...
+
+    return ($busSrcTarget, $busDestTarget);
+} # end sub setCommonConfigAttributes
+
 sub postProcessIpmiSensors {
     my $targetObj=shift;
     my $target=shift;
@@ -2985,52 +3460,52 @@ sub postProcessIpmiSensors {
     {
         if ($targetObj->getMrwType($child) eq "IPMI_SENSOR")
         {
-            my $entity_id=$targetObj->
-                 getAttribute($child,"IPMI_ENTITY_ID");
-            my $sensor_type=$targetObj->
-                 getAttribute($child,"IPMI_SENSOR_TYPE");
-            my $name_suffix=$targetObj->
-                 getAttribute($child,"IPMI_SENSOR_NAME_SUFFIX");
-            my $sensor_id=$targetObj->
-                 getAttribute($child,"IPMI_SENSOR_ID");
-            my $sensor_evt=$targetObj->
-                 getAttribute($child,"IPMI_SENSOR_READING_TYPE");
+            #RTC TODO Address with PLDM Implementation
+#            my $entity_id=$targetObj->
+#                 getAttribute($child,"IPMI_ENTITY_ID");
+#            my $sensor_type=$targetObj->
+#                 getAttribute($child,"IPMI_SENSOR_TYPE");
+#            my $name_suffix=$targetObj->
+#                 getAttribute($child,"IPMI_SENSOR_NAME_SUFFIX");
+#            my $sensor_id=$targetObj->
+#                 getAttribute($child,"IPMI_SENSOR_ID");
+#            my $sensor_evt=$targetObj->
+#                 getAttribute($child,"IPMI_SENSOR_READING_TYPE");
 
-
-            $name_suffix=~s/\n//g;
-            $name_suffix=~s/\s+//g;
-            $name_suffix=~s/\t+//g;
-            my $sensor_name=$name_suffix;
-            if ($name ne "")
-            {
-                $sensor_name=$name."_".$name_suffix;
-            }
-            my $attribute_name="";
-            my $s=sprintf("0x%02X%02X,0x%02X",
-                  oct($sensor_type),oct($entity_id),oct($sensor_id));
-            push(@sensors,$s);
-            my $sensor_id_str = "";
-            if ($sensor_id ne "")
-            {
-                $sensor_id_str = sprintf("0x%02X",oct($sensor_id));
-            }
-            my $str=sprintf(
-                " %30s | %10s |  0x%02X  | 0x%02X |    0x%02x   |" .
-                " %4s | %4d | %4d | %10s | %s\n",
-                $sensor_name,$name,oct($entity_id),oct($sensor_type),
-                oct($sensor_evt), $sensor_id_str,$instance,$fru_id,
-                $huid,$target);
-
-            # Check that the sensor id hasn't already been used.  Don't check
-            # blank sensor ids.
-            if (($sensor_id ne "") && (++$sensorIdsCnt{$sensor_id} >= 2)) {
-                print "ERROR: Duplicate IPMI_SENSOR_ID ($sensor_id_str)" .
-                      " found in MRW.  Sensor name is $sensor_name.\n";
-                print "$str";
-                $targetObj->myExit(3);
-            }
-
-            $targetObj->writeReport($str);
+#            $name_suffix=~s/\n//g;
+#            $name_suffix=~s/\s+//g;
+#            $name_suffix=~s/\t+//g;
+#            my $sensor_name=$name_suffix;
+#            if ($name ne "")
+#            {
+#                $sensor_name=$name."_".$name_suffix;
+#            }
+#            my $attribute_name="";
+#            my $s=sprintf("0x%02X%02X,0x%02X",
+#                  oct($sensor_type),oct($entity_id),oct($sensor_id));
+#            push(@sensors,$s);
+#            my $sensor_id_str = "";
+#            if ($sensor_id ne "")
+#            {
+#                $sensor_id_str = sprintf("0x%02X",oct($sensor_id));
+#            }
+#            my $str=sprintf(
+#                " %30s | %10s |  0x%02X  | 0x%02X |    0x%02x   |" .
+#                " %4s | %4d | %4d | %10s | %s\n",
+#                $sensor_name,$name,oct($entity_id),oct($sensor_type),
+#                oct($sensor_evt), $sensor_id_str,$instance,$fru_id,
+#                $huid,$target);
+#
+#            # Check that the sensor id hasn't already been used.  Don't check
+#            # blank sensor ids.
+#            if (($sensor_id ne "") && (++$sensorIdsCnt{$sensor_id} >= 2)) {
+#                print "ERROR: Duplicate IPMI_SENSOR_ID ($sensor_id_str)" .
+#                      " found in MRW.  Sensor name is $sensor_name.\n";
+#                print "$str";
+#                $targetObj->myExit(3);
+#            }
+#
+#            $targetObj->writeReport($str);
         }
     }
     for (my $i=@sensors;$i<16;$i++)
