@@ -58,6 +58,8 @@ if test "x$enable_gen_attrsinfo" = "xyes" ; then
 	if test x"$ac_cv_lib_pdbg_pdbg_targets_init" != "xyes" ; then
 		AC_MSG_ERROR([PDBG library not found])
 	fi
+
+	AX_CXX_COMPILE_STDCXX_11([noext])
 fi
 
 AC_ARG_ENABLE([gen_dynamicdt],
