@@ -75,6 +75,8 @@ int attr_type_size(enum attr_type type)
 		size = 4;
 	} else if (type == ATTR_TYPE_UINT64 || type == ATTR_TYPE_INT64) {
 		size = 8;
+	} else {
+		assert(0);
 	}
 
 	return size;
