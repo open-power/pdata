@@ -687,7 +687,7 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 
 	prop = dtm_node_get_property(state->node, attr_name);
 	if (!prop) {
-		fprintf(stderr, "  %s: attribute not defined\n", attr_name);
+		fprintf(stderr, "  %s: No such attribute\n", attr_name);
 		return false;
 	}
 
