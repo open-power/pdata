@@ -127,110 +127,123 @@ static void attr_set_value(char *tok, enum attr_type type, uint8_t *ptr)
 	}
 }
 
+static bool attr_db_read_attr_data(struct attr *attr, char *data)
+{
+	uint8_t *ptr;
+	char *tok;
+	int defined, i;
+
+	tok = strtok(data, " ");
+	if (!tok)
+		return false;
+
+	attr->type = attr_type_from_string(tok);
+	if (attr->type == ATTR_TYPE_UNKNOWN)
+		return false;
+
+	attr->data_size = attr_type_size(attr->type);
+	assert(attr->data_size > 0);
+
+	tok = strtok(NULL, " ");
+	if (!tok)
+		return false;
+
+	attr->dim_count = atoi(tok);
+	assert(attr->dim_count >= 0 && attr->dim_count <= 3);
+
+	attr->size = 1;
+	if (attr->dim_count > 0) {
+		attr->dim = (int *)malloc(attr->dim_count * sizeof(int));
+		assert(attr->dim);
+
+		for (i=0; i<attr->dim_count; i++) {
+			tok = strtok(NULL, " ");
+			if (!tok)
+				return false;
+
+			attr->dim[i] = atoi(tok);
+			assert(attr->dim[i] > 0);
+
+			attr->size *= attr->dim[i];
+		}
+	}
+
+	tok = strtok(NULL, " ");
+	if (!tok)
+		return false;
+
+	attr->enum_count = atoi(tok);
+	if (attr->enum_count > 0) {
+		attr->aenum = (struct attr_enum *)malloc(attr->enum_count * sizeof(struct attr_enum));
+		assert(attr->aenum);
+
+		for (i=0; i<attr->enum_count; i++) {
+			tok = strtok(NULL, " ");
+			if (!tok)
+				return false;
+
+			attr->aenum[i].key = strdup(tok);
+			assert(attr->aenum[i].key);
+
+			tok = strtok(NULL, " ");
+			if (!tok)
+				return false;
+
+			attr->aenum[i].value = strtoull(tok, NULL, 0);
+		}
+	}
+
+	tok = strtok(NULL, " ");
+	if (!tok)
+		return false;
+
+	defined = atoi(tok);
+	if (defined != 0 && defined != 1)
+		return false;
+
+	attr->value = (uint8_t *)calloc(attr->size, attr->data_size);
+	assert(attr->value);
+
+	if (defined == 0)
+		return true;
+
+	ptr = attr->value;
+	for (i=0; i<attr->size; i++) {
+		tok = strtok(NULL, " ");
+		if (!tok)
+			return false;
+
+		attr_set_value(tok, attr->type, ptr);
+		ptr += attr->data_size;
+	}
+
+	return true;
+}
+
 static bool attr_db_read_attr(FILE *fp, struct attr_info *info)
 {
-	char *data, *tok;
-	int i, j, count;
+	char *data;
+	int i;
+	bool ok;
 
 	for (i=0; i<info->alist.count; i++) {
 		struct attr *attr = &info->alist.attr[i];
-		int defined;
 
 		data = attr_db_get_value(fp, attr->name);
 		if (!data)
 			return false;
 
-		tok = strtok(data, " ");
-		if (!tok)
-			return false;
-
-		attr->type = attr_type_from_string(tok);
-		assert(attr->type != ATTR_TYPE_UNKNOWN);
-
-		attr->data_size = attr_type_size(attr->type);
-		assert(attr->data_size > 0);
-
-		tok = strtok(NULL, " ");
-		if (!tok)
-			return false;
-
-		attr->dim_count = atoi(tok);
-		assert(attr->dim_count >= 0 && attr->dim_count < 4);
-
-		attr->size = 1;
-		if (attr->dim_count > 0) {
-			attr->dim = (int *)malloc(attr->dim_count * sizeof(int));
-			assert(attr->dim);
-
-			for (j=0; j<attr->dim_count; j++) {
-				tok = strtok(NULL, " ");
-				if (!tok)
-					return false;
-
-				attr->dim[j] = atoi(tok);
-				attr->size *= attr->dim[j];
-			}
-			assert(attr->size >= 1);
-		}
-
-		tok = strtok(NULL, " ");
-		if (!tok)
-			return false;
-
-		attr->enum_count = atoi(tok);
-		attr->aenum = (struct attr_enum *)malloc(attr->enum_count * sizeof(struct attr_enum));
-		assert(attr->aenum);
-
-		for (j=0; j<attr->enum_count; j++) {
-			tok = strtok(NULL, " ");
-			if (!tok)
-				return false;
-
-			attr->aenum[j].key = strdup(tok);
-			assert(attr->aenum[j].key);
-
-			tok = strtok(NULL, " ");
-			if (!tok)
-				return false;
-
-			attr->aenum[j].value = strtoull(tok, NULL, 0);
-		}
-
-		tok = strtok(NULL, " ");
-		if (!tok)
-			return false;
-
-		defined = atoi(tok);
-		assert(defined == 0 || defined == 1);
-
-		/* Special case of instance attribute ATTR_PG */
-		if (0 && !strcmp(attr->name, "ATTR_PG"))
-			count = NUM_CHIPLETS;
-		else
-			count = attr->size;
-
-		attr->value = (uint8_t *)calloc(count, attr->data_size);
-		if (!attr->value)
-			return false;
-
-		if (defined == 1) {
-			uint8_t *ptr = attr->value;
-
-			for (j=0; j<count; j++) {
-				tok = strtok(NULL, " ");
-				if (!tok)
-					return false;
-
-				attr_set_value(tok, attr->type, ptr);
-				ptr += attr->data_size;
-			}
-		}
+		ok = attr_db_read_attr_data(attr, data);
 
 		free(data);
+
+		if (!ok) {
+			fprintf(stderr, "Failed to read %s\n", attr->name);
+			return false;
+		}
 	}
 
 	return true;
-
 }
 
 static bool attr_db_read_targets(FILE *fp, struct attr_info *info)
