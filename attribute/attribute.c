@@ -321,7 +321,7 @@ static int do_export_node(struct dtm_node *node, void *priv)
 	return 0;
 }
 
-void do_export_data_type(struct attr *attr)
+static void do_export_data_type(struct attr *attr)
 {
 	switch (attr->type) {
 	case ATTR_TYPE_UINT8:
@@ -366,7 +366,7 @@ void do_export_data_type(struct attr *attr)
 	}
 }
 
-int do_export_value_string(struct attr *attr, uint8_t *value)
+static int do_export_value_string(struct attr *attr, uint8_t *value)
 {
 	uint64_t val = 0;
 	int used = 0;
