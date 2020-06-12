@@ -1,17 +1,17 @@
 # Targets pdbg mapping info
 # Format : MRWTargetType:PdbgCompatiblePropValue
-unit-eq-power10:ibm,power9-eq
-unit-fc-power10:ibm,power9-fc
-unit-core-power10:ibm,power9-core
-unit-perv-power10:ibm,power9-chiplet
-unit-pauc-power10:ibm,power9-pauc
-unit-pec-power10:ibm,power9-pec
-unit-phb-power10:ibm,power9-phb
-unit-nmmu-power10:ibm,power9-nmmu
-unit-iohs-power10:ibm,power9-iohs
-unit-pau-power10:ibm,power9-pau
-unit-mc-power10:ibm,power9-mc
-unit-mi-power10:ibm,power9-mi
+unit-eq-power10:ibm,power10-eq
+unit-fc-power10:ibm,power10-fc
+unit-core-power10:ibm,power10-core
+unit-perv-power10:ibm,power10-chiplet
+unit-pauc-power10:ibm,power10-pauc
+unit-pec-power10:ibm,power10-pec
+unit-phb-power10:ibm,power10-phb
+unit-nmmu-power10:ibm,power10-nmmu
+unit-iohs-power10:ibm,power10-iohs
+unit-pau-power10:ibm,power10-pau
+unit-mc-power10:ibm,power10-mc
+unit-mi-power10:ibm,power10-mi
 chip-processor-power10:"ibm,power-proc", "ibm,power10-proc", "ibm,processor"
 unit-mcc-power10:ibm,power10-mcc
 unit-omic-power10:ibm,power10-omic
