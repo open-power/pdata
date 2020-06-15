@@ -173,7 +173,7 @@ static bool split_cronus_target(char *name, struct cronus_target *ct)
 
 		tok = strtok_r(NULL, ":", &saveptr);
 		if (!tok)
-			return false;
+			return true;
 	}
 
 	/* node */
