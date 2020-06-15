@@ -572,6 +572,7 @@ static int do_export(const char *dtb, const char *infodb)
 }
 
 struct do_import_state {
+	struct dtm_file *dfile;
 	struct attr_info *ainfo;
 	struct dtm_node *root;
 
@@ -786,6 +787,11 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 	if (state->count < value.size)
 		return true;
 
+	if (!dtm_file_update_node(state->dfile, state->node, attr_name)) {
+		fprintf(stderr, "  %s: import failed\n", attr_name);
+		return false;
+	}
+
 	fprintf(stderr, "  %s: imported\n", attr_name);
 
 	state->count = 0;
@@ -822,15 +828,12 @@ static int do_import(const char *dtb, const char *infodb, const char *dump_file)
 	struct attr_info ainfo;
 	FILE *fp;
 	char line[1024], *ptr;
-	char old[strlen(dtb)+12];
-	int ret;
 
-	dfile = dtm_file_open(dtb, false);
+	dfile = dtm_file_open(dtb, true);
 	if (!dfile)
 		return 1;
 
 	root = dtm_file_read(dfile);
-	dtm_file_close(dfile);
 	if (!root)
 		return 1;
 
@@ -838,6 +841,7 @@ static int do_import(const char *dtb, const char *infodb, const char *dump_file)
 		return 2;
 
 	state = (struct do_import_state) {
+		.dfile = dfile,
 		.ainfo = &ainfo,
 		.root = root,
 	};
@@ -857,20 +861,7 @@ static int do_import(const char *dtb, const char *infodb, const char *dump_file)
 	}
 	fclose(fp);
 
-	sprintf(old, "%s.old.import", dtb);
-	ret = rename(dtb, old);
-	if (ret != 0)
-		fprintf(stderr, "Failed to rename %s to %s\n", dtb, old);
-
-	dfile = dtm_file_create(dtb);
-	if (!dfile)
-		return 4;
-
-	if (!dtm_file_write(dfile, root))
-		return 5;
-
 	dtm_file_close(dfile);
-
 	return 0;
 }
 
@@ -1020,14 +1011,13 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 	uint8_t *buf;
 	struct attr_info ainfo;
 	struct attr *attr, value;
-	int len, i, ret;
+	int len, i;
 
-	dfile = dtm_file_open(dtb, false);
+	dfile = dtm_file_open(dtb, true);
 	if (!dfile)
 		return 1;
 
 	root = dtm_file_read(dfile);
-	dtm_file_close(dfile);
 	if (!root)
 		return 1;
 
@@ -1090,20 +1080,12 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 	dtm_prop_set_value(prop, buf, len);
 	free(buf);
 
-	ret = rename(dtb, "old.dtb");
-	if (ret != 0)
-		fprintf(stderr, "Failed to rename %s to old.dtb\n", dtb);
-
-	dfile = dtm_file_create(dtb);
-	if (!dfile)
+	if (!dtm_file_update_node(dfile, node, name)) {
+		fprintf(stderr, "Failed to update attribute %s\n", name);
 		return 5;
-
-	if (!dtm_file_write(dfile, root))
-		return 6;
+	}
 
 	dtm_file_close(dfile);
-
-	unlink("old.dtb");
 	return 0;
 }
 
