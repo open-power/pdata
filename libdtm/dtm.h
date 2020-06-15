@@ -63,9 +63,10 @@ typedef int (*dtm_traverse_prop_fn)(struct dtm_node *node, struct dtm_property *
  * @brief Open FDT file for reading
  *
  * @param[in] filename  Filename of FDT blob
+ * @param[in] do_write  Whether file needs to modified
  * @return pointer to dtm_file structure or NULL on failure
  */
-struct dtm_file *dtm_file_open(const char *filename);
+struct dtm_file *dtm_file_open(const char *filename, bool do_write);
 
 /**
  * @brief Open FDT file for writing

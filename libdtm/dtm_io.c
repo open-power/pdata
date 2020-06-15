@@ -45,27 +45,40 @@ static void dtm_file_free(struct dtm_file *dfile)
 	free(dfile);
 }
 
-struct dtm_file *dtm_file_open(const char *filename)
+static struct dtm_file *_dtm_file_open(const char *filename, bool do_create, bool do_write)
 {
 	struct dtm_file *dfile;
 	struct stat statbuf;
-	int ret;
+	int flags, prot, ret;
 
 	dfile = malloc(sizeof(struct dtm_file));
 	if (!dfile)
 		return NULL;
 
+	/* Create always means write */
+	if (do_create)
+		do_write = true;
+
 	*dfile = (struct dtm_file) {
 		.filename = filename,
 		.fd = -1,
-		.do_create = false,
+		.ptr = MAP_FAILED,
+		.do_create = do_create,
+		.do_write = do_write,
 	};
 
-	dfile->fd = open(filename, O_RDONLY);
+	flags = do_write ? O_RDWR : O_RDONLY;
+	if (do_create)
+		flags |= O_CREAT;
+
+	dfile->fd = open(filename, flags, 0644);
 	if (dfile->fd == -1) {
 		fprintf(stderr, "open() failed for %s\n", filename);
 		goto fail;
 	}
+
+	if (do_create)
+		return dfile;
 
 	ret = fstat(dfile->fd, &statbuf);
 	if (ret != 0) {
@@ -73,8 +86,16 @@ struct dtm_file *dtm_file_open(const char *filename)
 		goto fail;
 	}
 
+	if (do_write) {
+		prot = PROT_WRITE;
+		flags = MAP_SHARED;
+	} else {
+		prot = PROT_READ;
+		flags = MAP_PRIVATE;
+	}
+
 	dfile->len = statbuf.st_size;
-	dfile->ptr = mmap(NULL, dfile->len, PROT_READ, MAP_PRIVATE, dfile->fd, 0);
+	dfile->ptr = mmap(NULL, dfile->len, prot, flags, dfile->fd, 0);
 	if (dfile->ptr == MAP_FAILED) {
 		fprintf(stderr, "mmap() failed for %s\n", filename);
 		goto fail;
@@ -87,28 +108,14 @@ fail:
 	return NULL;
 }
 
+struct dtm_file *dtm_file_open(const char *filename, bool do_write)
+{
+	return _dtm_file_open(filename, false, do_write);
+}
+
 struct dtm_file *dtm_file_create(const char *filename)
 {
-	struct dtm_file *dfile;
-
-	dfile = malloc(sizeof(struct dtm_file));
-	if (!dfile)
-		return NULL;
-
-	*dfile = (struct dtm_file) {
-		.filename = filename,
-		.fd = -1,
-		.do_create = true,
-	};
-
-	dfile->fd = open(filename, O_WRONLY|O_CREAT, 0644);
-	if (dfile->fd == -1) {
-		fprintf(stderr, "open() failed for %s\n", filename);
-		dtm_file_free(dfile);
-		return NULL;
-	}
-
-	return dfile;
+	return _dtm_file_open(filename, true, true);
 }
 
 static int dtm_file_store(struct dtm_file *dfile)

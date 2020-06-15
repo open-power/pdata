@@ -109,7 +109,7 @@ static int do_create(const char *dtb, const char *infodb, const char *out_dtb)
 	struct attr_info ainfo;
 	int ret;
 
-	dfile = dtm_file_open(dtb);
+	dfile = dtm_file_open(dtb, false);
 	if (!dfile)
 		return 1;
 
@@ -258,7 +258,7 @@ static int do_dump(const char *dtb, const char *infodb, const char *target)
 	struct do_dump_state state;
 	int ret;
 
-	dfile = dtm_file_open(dtb);
+	dfile = dtm_file_open(dtb, false);
 	if (!dfile)
 		return 1;
 
@@ -547,7 +547,7 @@ static int do_export(const char *dtb, const char *infodb)
 	struct attr_info ainfo;
 	int ret;
 
-	dfile = dtm_file_open(dtb);
+	dfile = dtm_file_open(dtb, false);
 	if (!dfile)
 		return 1;
 
@@ -825,7 +825,7 @@ static int do_import(const char *dtb, const char *infodb, const char *dump_file)
 	char old[strlen(dtb)+12];
 	int ret;
 
-	dfile = dtm_file_open(dtb);
+	dfile = dtm_file_open(dtb, false);
 	if (!dfile)
 		return 1;
 
@@ -884,7 +884,7 @@ static int do_read(const char *dtb, const char *infodb, const char *target, cons
 	struct attr *attr, value;
 	int len, i;
 
-	dfile = dtm_file_open(dtb);
+	dfile = dtm_file_open(dtb, false);
 	if (!dfile)
 		return 1;
 
@@ -973,7 +973,7 @@ static int do_translate(const char *dtb, const char *target)
 	struct dtm_node *root, *node;
 	char *path;
 
-	dfile = dtm_file_open(dtb);
+	dfile = dtm_file_open(dtb, false);
 	if (!dfile)
 		return 1;
 
@@ -1022,7 +1022,7 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 	struct attr *attr, value;
 	int len, i, ret;
 
-	dfile = dtm_file_open(dtb);
+	dfile = dtm_file_open(dtb, false);
 	if (!dfile)
 		return 1;
 
