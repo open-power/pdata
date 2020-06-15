@@ -108,6 +108,16 @@ struct dtm_node *dtm_file_read(struct dtm_file *dfile);
 bool dtm_file_write(struct dtm_file *dfile, struct dtm_node *root);
 
 /**
+ * @brief Update node information in FDT file
+ *
+ * @param[in] dfile  dtm_file for FDT file opened for write
+ * @param[in] node   Node to be updated
+ * @param[in] name   Name of property to be updated, NULL for all
+ * @return true on success, false on failure
+ */
+bool dtm_file_update_node(struct dtm_file *dfile, struct dtm_node *node, const char *name);
+
+/**
  * @brief Create a new tree with root node
  *
  * @return root node on success, NULL on failure

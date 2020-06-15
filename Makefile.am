@@ -54,6 +54,7 @@ libdtm_la_SOURCES = \
 	ccan/list/list.h \
 	libdtm/dtm.c \
 	libdtm/dtm.h \
+	libdtm/dtm_file.c \
 	libdtm/dtm_internal.h \
 	libdtm/dtm_io.c \
 	libdtm/dtm_node.c \
@@ -62,7 +63,7 @@ libdtm_la_SOURCES = \
 	libdtm/dtm_search.c \
 	libdtm/dtm_traverse.c \
 	libdtm/dtm_tree.c
-libdtm_la_LIBADD = libfdt-traverse.la
+libdtm_la_LIBADD = libfdt-traverse.la libfdt-attr.la
 
 attributes_SOURCES = \
 	attribute/attribute.c \
