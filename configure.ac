@@ -2,6 +2,18 @@ AC_INIT([pdata], [1.0])
 AM_INIT_AUTOMAKE([subdir-objects])
 AM_SILENT_RULES([yes])
 
+AC_ARG_VAR(CHIP, [Target chip to build for])
+AS_IF([test "x$CHIP" == "x"], [CHIP="p10"])
+
+AC_SUBST([CHIP])
+
+case "$CHIP" in
+	"p9") pchip="p9n" ;;
+	"p10") pchip="p10" ;;
+	*) pchip="unk" ;;
+esac
+AC_DEFINE_UNQUOTED([PCHIP], ["$pchip"], [Power chip type])
+
 case "$host" in
 	arm*-*-*) ARCH="arm" ;;
 	*) ARCH=$(uname -m) ;;

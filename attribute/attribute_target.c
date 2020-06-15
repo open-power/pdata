@@ -22,6 +22,7 @@
 
 #include "libdtm/dtm.h"
 
+#include "config.h"
 #include "attribute.h"
 #include "attribute_target.h"
 #include "attribute_util.h"
@@ -187,6 +188,9 @@ static bool split_cronus_target(char *name, struct cronus_target *ct)
 	if (tok[0] == 'p') {
 		tok = strtok(tok, ".");
 		if (!tok)
+			return false;
+
+		if (strcmp(tok, PCHIP) != 0)
 			return false;
 
 		ct->chip_name = strdup(tok);
@@ -385,8 +389,7 @@ char *to_cronus_target(struct dtm_node *root, struct dtm_node *node)
 		const char *name, *cronus_class;
 		char *dtree_class;
 
-		/* FIXME: This should be deciced from device tree */
-		ct.chip_name = "p9n";
+		ct.chip_name = PCHIP;
 
 		for (pib = node; pib; pib = dtm_node_parent(pib)) {
 			name = dtm_node_name(pib);
