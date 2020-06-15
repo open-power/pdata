@@ -31,7 +31,7 @@ static void dtm_file_free(struct dtm_file *dfile)
 	if (!dfile)
 		return;
 
-	if (dfile->do_write) {
+	if (dfile->do_create) {
 		if (dfile->ptr)
 			free(dfile->ptr);
 	} else {
@@ -58,7 +58,7 @@ struct dtm_file *dtm_file_open(const char *filename)
 	*dfile = (struct dtm_file) {
 		.filename = filename,
 		.fd = -1,
-		.do_write = false,
+		.do_create = false,
 	};
 
 	dfile->fd = open(filename, O_RDONLY);
@@ -98,7 +98,7 @@ struct dtm_file *dtm_file_create(const char *filename)
 	*dfile = (struct dtm_file) {
 		.filename = filename,
 		.fd = -1,
-		.do_write = true,
+		.do_create = true,
 	};
 
 	dfile->fd = open(filename, O_WRONLY|O_CREAT, 0644);
@@ -131,7 +131,7 @@ int dtm_file_close(struct dtm_file *dfile)
 {
 	int ret;
 
-	if (!dfile->do_write) {
+	if (!dfile->do_create) {
 		dtm_file_free(dfile);
 		return 0;
 	}
@@ -167,7 +167,7 @@ struct dtm_node *dtm_file_read(struct dtm_file *dfile)
 	struct dtm_node *root;
 
 	/* Parse only for files opened for read */
-	if (dfile->do_write)
+	if (dfile->do_create)
 		return NULL;
 
 	root = dtm_tree_new();
@@ -219,7 +219,7 @@ static const void *dtm_file_write_prop(void *_node,
 
 bool dtm_file_write(struct dtm_file *dfile, struct dtm_node *root)
 {
-	if (!dfile->do_write)
+	if (!dfile->do_create)
 		return false;
 
 	dfile->ptr = fdt_traverse_write(root, dtm_file_write_node, dtm_file_write_prop, &dfile->len);

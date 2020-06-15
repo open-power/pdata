@@ -24,7 +24,7 @@ struct dtm_file {
 	int fd;
 	void *ptr;
 	int len;
-	bool do_write;
+	bool do_create;
 };
 
 struct dtm_property {
