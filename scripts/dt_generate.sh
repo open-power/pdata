@@ -21,7 +21,7 @@ set -e
 
 usage ()
 {
-    echo "Usage: $0 header|dts <filename>"
+    echo "Usage: $0 header|dts|infodb <filename>"
     exit 1
 }
 
@@ -52,7 +52,7 @@ if [ $# -ne 2 ] ; then
     usage
 fi
 
-if [ "$1" != "header" -a "$1" != "dts" ] ; then
+if [ "$1" != "header" -a "$1" != "dts" -a "$1" != "infodb" ] ; then
     usage
 fi
 
@@ -162,6 +162,18 @@ if [ "$filetype" = "header" ] ; then
     "$script_dir/genAttrsHeaderFile.pl" \
         --inXML "$tmp_dir/intermediate.xml" \
         --outAHFile "$outfile"
+
+elif [ "$filetype" = "infodb" ] ; then
+
+# Step 7: Generating attributes info database which is contains
+#         MRW, FAPI and Non-FAPI targets/attributes and generated info db
+#         can use for attribute tool to read|write attributes by using
+#         power system device tree.
+
+    debug "Step 7: Generating info db file"
+    "$script_dir/genAttrsInfoDB.pl" \
+        --inXML "$tmp_dir/intermediate.xml" \
+        --outInfoDB "$outfile"
 
 else
 
