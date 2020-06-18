@@ -626,9 +626,9 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 	if (attr->dim_count == 1) {
 		index = idx[0];
 	} else if (attr->dim_count == 2) {
-		index = idx[0] * attr->dim[0] + idx[1];
+		index = idx[0] * attr->dim[1] + idx[1];
 	} else if (attr->dim_count == 3) {
-		index = idx[0] * attr->dim[0] + idx[1] * attr->dim[1] + idx[2];
+		index = idx[0] * attr->dim[1] * attr->dim[2] + idx[1] * attr->dim[2] + idx[2];
 	}
 
 	attr_copy(attr, &value);
