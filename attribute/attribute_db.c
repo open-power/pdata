@@ -106,27 +106,6 @@ static bool attr_db_read_all(FILE *fp, struct attr_info *info)
 	return true;
 }
 
-static void attr_set_value(char *tok, enum attr_type type, uint8_t *ptr)
-{
-	unsigned long long int data;
-
-	data = strtoull(tok, NULL, 0);
-
-	if (type == ATTR_TYPE_UINT8 || type == ATTR_TYPE_INT8) {
-		uint8_t value = data & 0xff;
-		memcpy(ptr, &value, 1);
-	} else if (type == ATTR_TYPE_UINT16 || type == ATTR_TYPE_INT16) {
-		uint16_t value = data & 0xffff;
-		memcpy(ptr, &value, 2);
-	} else if (type == ATTR_TYPE_UINT32 || type == ATTR_TYPE_INT32) {
-		uint32_t value = data & 0xffffffff;
-		memcpy(ptr, &value, 4);
-	} else if (type == ATTR_TYPE_UINT64 || type == ATTR_TYPE_INT64) {
-		uint64_t value = data;
-		memcpy(ptr, &value, 8);
-	}
-}
-
 static bool attr_db_read_attr_data(struct attr *attr, char *data)
 {
 	uint8_t *ptr;
