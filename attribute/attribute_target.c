@@ -262,7 +262,7 @@ static bool construct_cronus_target(struct cronus_target *ct, char *name, size_t
 		goto done;
 	}
 
-	/* Pib with index */
+	/* Proc with index */
 	if (!ct->class_name) {
 		assert(ct->cage != -1);
 		assert(ct->node != -1);
@@ -335,7 +335,7 @@ static struct dtm_node *dtm_find_node_by_class(struct dtm_node *root, struct cro
 
 struct dtm_node *from_cronus_target(struct dtm_node *root, const char *name)
 {
-	struct dtm_node *pib, *target;
+	struct dtm_node *proc, *target;
 	struct cronus_target ct;
 	char *copy;
 	char path[128];
@@ -354,21 +354,21 @@ struct dtm_node *from_cronus_target(struct dtm_node *root, const char *name)
 	if (!ct.chip_name)
 		return root;
 
-	/* Pib with index */
+	/* Proc with index */
 	assert(ct.chip_position != -1);
 
-	sprintf(path, "/proc%d/pib", ct.chip_position);
-	pib = dtm_find_node_by_path(root, path);
-	assert(pib);
+	sprintf(path, "/proc%d", ct.chip_position);
+	proc = dtm_find_node_by_path(root, path);
+	assert(proc);
 
 	if (!ct.class_name) {
-		return pib;
+		return proc;
 	}
 
-	/* Pib with index --> hwunit with index */
+	/* Proc with index --> hwunit with index */
 	assert(ct.chip_unit != -1);
 
-	target = dtm_find_node_by_class(pib, &ct);
+	target = dtm_find_node_by_class(proc, &ct);
 	assert(target);
 
 	return target;
@@ -385,33 +385,33 @@ char *to_cronus_target(struct dtm_node *root, struct dtm_node *node)
 	ct.node = 0;
 	ct.slot = 0;
 	if (node != root) {
-		struct dtm_node *pib = NULL;
+		struct dtm_node *proc = NULL;
 		const char *name, *cronus_class;
 		char *dtree_class;
 
 		ct.chip_name = PCHIP;
 
-		for (pib = node; pib; pib = dtm_node_parent(pib)) {
-			name = dtm_node_name(pib);
+		for (proc = node; proc; proc = dtm_node_parent(proc)) {
+			name = dtm_node_name(proc);
 
 			dtree_class = dtree_name_to_class(name);
 			assert(dtree_class);
 
-			if (strcmp(dtree_class, "pib") == 0) {
+			if (strcmp(dtree_class, "proc") == 0) {
 				free(dtree_class);
-				ct.chip_position = dtm_node_index(pib);
+				ct.chip_position = dtm_node_index(proc);
 				break;
 			}
 
 			free(dtree_class);
 		}
 
-		if (pib == NULL)
+		if (proc == NULL)
 			return NULL;
 
 		assert(ct.chip_position != -1);
 
-		if (node != pib) {
+		if (node != proc) {
 			name = dtm_node_name(node);
 
 			dtree_class = dtree_name_to_class(name);
