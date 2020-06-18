@@ -1,0 +1,11 @@
+/dts-v1/;
+
+/ {
+	proc0 {
+		index = <0x0>;
+	};
+
+	proc1 {
+		index = <0x1>;
+	};
+};
