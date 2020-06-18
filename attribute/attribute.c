@@ -162,49 +162,8 @@ static int do_dump_print_node(struct dtm_node *node, void *priv)
 
 static void do_dump_value(struct attr *attr)
 {
-	uint8_t *ptr = attr->value;
-	int i;
-
-	for (i=0; i<attr->size; i++) {
-		switch (attr->type) {
-		case ATTR_TYPE_UINT8:
-			printf(" 0x%02x", *ptr);
-			break;
-
-		case ATTR_TYPE_UINT16:
-			printf(" 0x%04x", *(uint16_t *)ptr);
-			break;
-
-		case ATTR_TYPE_UINT32:
-			printf(" 0x%08x", *(uint32_t *)ptr);
-			break;
-
-		case ATTR_TYPE_UINT64:
-			printf(" 0x%016" PRIx64, *(uint64_t *)ptr);
-			break;
-
-		case ATTR_TYPE_INT8:
-			printf(" %d", *(int8_t *)ptr);
-			break;
-
-		case ATTR_TYPE_INT16:
-			printf(" %d", *(int16_t *)ptr);
-			break;
-
-		case ATTR_TYPE_INT32:
-			printf(" %d", *(int32_t *)ptr);
-			break;
-
-		case ATTR_TYPE_INT64:
-			printf(" %"PRId64, *(int64_t *)ptr);
-			break;
-
-		default:
-			break;
-		}
-
-		ptr += attr->data_size;
-	}
+	if (!attr_print_enum_value(attr, NULL))
+		attr_print_value(attr, NULL);
 }
 
 static int do_dump_print_prop(struct dtm_node *node, struct dtm_property *prop, void *priv)
@@ -366,51 +325,10 @@ static void do_export_data_type(struct attr *attr)
 	}
 }
 
-static int do_export_value_string(struct attr *attr, uint8_t *value)
+static void do_export_value_string(struct attr *attr, uint8_t *value)
 {
-	uint64_t val = 0;
-	int used = 0;
-
-	if (attr->type == ATTR_TYPE_UINT8 || attr->type == ATTR_TYPE_INT8) {
-		val = *(uint8_t *)value;
-		used = 1;
-	} else if (attr->type == ATTR_TYPE_UINT16 || attr->type == ATTR_TYPE_INT16) {
-		val = *(uint16_t *)value;
-		used = 2;
-	} else if (attr->type == ATTR_TYPE_UINT32 || attr->type == ATTR_TYPE_INT32) {
-		val = *(uint32_t *)value;
-		used = 4;
-	} else if (attr->type == ATTR_TYPE_UINT64 || attr->type == ATTR_TYPE_INT64) {
-		val = *(uint64_t *)value;
-		used = 8;
-	}
-
-	if (attr->enum_count > 0) {
-		int i;
-
-		for (i=0; i<attr->enum_count; i++) {
-			if (attr->aenum[i].value == val) {
-				printf("%s", attr->aenum[i].key);
-				return used;
-			}
-		}
-		printf("UNKNOWN_ENUM");
-		return used;
-	}
-
-	if (used == 1) {
-		printf("0x%02x", (uint8_t)val);
-	} else if (used == 2) {
-		printf("0x%04x", (uint16_t)val);
-	} else if (used == 4) {
-		printf("0x%08x", (uint32_t)val);
-	} else if (used == 8) {
-		printf("0x%016llx", (unsigned long long)val);
-	} else {
-		printf("ERROR%d", used);
-	}
-
-	return used;
+	if (!attr_print_enum_value(attr, value))
+		attr_print_value(attr, value);
 }
 
 static void do_export_prop_scalar(struct attr *attr)
@@ -425,7 +343,7 @@ static void do_export_prop_scalar(struct attr *attr)
 
 static void do_export_prop_array1(struct attr *attr)
 {
-	int offset = 0, n;
+	uint8_t *ptr = attr->value;
 	int i;
 
 	for (i=0; i<attr->dim[0]; i++) {
@@ -435,15 +353,15 @@ static void do_export_prop_array1(struct attr *attr)
 		do_export_data_type(attr);
 		printf("[%d]", attr->dim[0]);
 		printf(" ");
-		n = do_export_value_string(attr, attr->value + offset);
-		offset += n;
+		do_export_value_string(attr, ptr);
+		ptr += attr->data_size;
 		printf("\n");
 	}
 }
 
 static void do_export_prop_array2(struct attr *attr)
 {
-	int offset = 0, n;
+	uint8_t *ptr = attr->value;
 	int i, j;
 
 	for (i=0; i<attr->dim[0]; i++) {
@@ -454,8 +372,8 @@ static void do_export_prop_array2(struct attr *attr)
 			do_export_data_type(attr);
 			printf("[%d][%d]", attr->dim[0], attr->dim[1]);
 			printf(" ");
-			n = do_export_value_string(attr, attr->value + offset);
-			offset += n;
+			do_export_value_string(attr, ptr);
+			ptr += attr->data_size;
 			printf("\n");
 		}
 	}
@@ -463,7 +381,7 @@ static void do_export_prop_array2(struct attr *attr)
 
 static void do_export_prop_array3(struct attr *attr)
 {
-	int offset = 0, n;
+	uint8_t *ptr = attr->value;
 	int i, j, k;
 
 	for (i=0; i<attr->dim[0]; i++) {
@@ -475,8 +393,8 @@ static void do_export_prop_array3(struct attr *attr)
 				do_export_data_type(attr);
 				printf("[%d][%d][%d]", attr->dim[0], attr->dim[1], attr->dim[2]);
 				printf(" ");
-				n = do_export_value_string(attr, attr->value + offset);
-				offset += n;
+				do_export_value_string(attr, ptr);
+				ptr += attr->data_size;
 				printf("\n");
 			}
 		}
@@ -929,30 +847,9 @@ static int do_read(const char *dtb, const char *infodb, const char *target, cons
 
 	printf(" = ");
 
-	if (value.data_size == 1) {
-		uint8_t *ptr = (uint8_t *)value.value;
+	if (!attr_print_enum_value(&value, NULL))
+		attr_print_value(&value, NULL);
 
-		for (i=0; i<value.size; i++)
-			printf("0x%02x ", ptr[i]);
-
-	} else if (value.data_size == 2) {
-		uint16_t *ptr = (uint16_t *)value.value;
-
-		for (i=0; i<value.size; i++)
-			printf("0x%04x ", ptr[i]);
-
-	} else if (value.data_size == 4) {
-		uint32_t *ptr = (uint32_t *)value.value;
-
-		for (i=0; i<value.size; i++)
-			printf("0x%08x ", ptr[i]);
-
-	} else if (value.data_size == 8) {
-		uint64_t *ptr = (uint64_t *)value.value;
-
-		for (i=0; i<value.size; i++)
-			printf("0x%016"PRIx64" ", ptr[i]);
-	}
 	printf("\n");
 
 	return 0;
