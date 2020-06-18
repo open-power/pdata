@@ -162,7 +162,9 @@ static int do_dump_print_node(struct dtm_node *node, void *priv)
 
 static void do_dump_value(struct attr *attr)
 {
-	if (attr->type == ATTR_TYPE_STRING) {
+	if (attr->type == ATTR_TYPE_COMPLEX) {
+		attr_print_complex_value(attr, NULL);
+	} else if (attr->type == ATTR_TYPE_STRING) {
 		attr_print_string_value(attr, NULL);
 	} else {
 		if (!attr_print_enum_value(attr, NULL))
@@ -294,7 +296,9 @@ static void do_export_data_type(struct attr *attr)
 
 static void do_export_value_string(struct attr *attr, uint8_t *value)
 {
-	if (attr->type == ATTR_TYPE_STRING) {
+	if (attr->type == ATTR_TYPE_COMPLEX) {
+		attr_print_complex_value(attr, value);
+	} else if (attr->type == ATTR_TYPE_STRING) {
 		attr_print_string_value(attr, value);
 	} else {
 		if (!attr_print_enum_value(attr, value))
@@ -633,12 +637,26 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 	ptr = value.value + index * value.data_size;
 
 	/* attribute value */
-	tok = strtok_r(NULL, " ", &saveptr);
-	if (!tok)
-		return false;
+	if (attr->type == ATTR_TYPE_COMPLEX) {
+		uint64_t val;
+		int data_size;
 
-	if (attr->type == ATTR_TYPE_STRING) {
+		for (i=0; i<strlen(attr->spec); i++) {
+			tok = strtok_r(NULL, " ", &saveptr);
+			if (!tok)
+				return false;
+
+			val = strtoull(tok, NULL, 0);
+			data_size = attr->spec[i] - '0';
+			attr_set_value_num(ptr, data_size, val);
+			ptr += data_size;
+		}
+	} else if (attr->type == ATTR_TYPE_STRING) {
 		size_t n;
+
+		tok = strtok_r(NULL, " ", &saveptr);
+		if (!tok)
+			return false;
 
 		if (tok[0] != '"')
 			return false;
@@ -651,6 +669,10 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 
 		attr_set_string_value(attr, ptr, &tok[1]);
 	} else {
+		tok = strtok_r(NULL, " ", &saveptr);
+		if (!tok)
+			return false;
+
 		if (!attr_set_enum_value(attr, ptr, tok))
 			attr_set_value(attr, ptr, tok);
 	}
@@ -805,7 +827,9 @@ static int do_read(const char *dtb, const char *infodb, const char *target, cons
 
 	printf(" = ");
 
-	if (attr->type == ATTR_TYPE_STRING) {
+	if (attr->type == ATTR_TYPE_COMPLEX) {
+		attr_print_complex_value(&value, NULL);
+	} else if (attr->type == ATTR_TYPE_STRING) {
 		attr_print_string_value(&value, NULL);
 	} else {
 		if (!attr_print_enum_value(&value, NULL))
@@ -870,7 +894,7 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 	uint8_t *buf, *ptr;
 	struct attr_info ainfo;
 	struct attr *attr, value;
-	int len, i;
+	int len, count, i;
 
 	dfile = dtm_file_open(dtb, true);
 	if (!dfile)
@@ -914,21 +938,38 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 	val = dtm_prop_value(prop, &len);
 	attr_decode(&value, (const uint8_t *)val, len);
 
-	if (argc != value.size) {
-		fprintf(stderr, "Insufficient values %d, expected %d\n", argc, value.size);
+	count = attr->size;
+	if (attr->type == ATTR_TYPE_COMPLEX) {
+		count *= strlen(attr->spec);
+	}
+
+	if (argc != count) {
+		fprintf(stderr, "Insufficient values %d, expected %d\n", argc, count);
 		return 4;
 	}
 
 	ptr = value.value;
 	for (i=0; i<value.size; i++) {
-		if (attr->type == ATTR_TYPE_STRING) {
+		if (attr->type == ATTR_TYPE_COMPLEX) {
+			uint64_t val;
+			int data_size, j;
+
+			count = i * strlen(attr->spec);
+
+			for (j=0; j<strlen(attr->spec); j++) {
+				val = strtoull(argv[count+j], NULL, 0);
+				data_size = attr->spec[j] - '0';
+				attr_set_value_num(ptr, data_size, val);
+				ptr += data_size;
+			}
+		} else if (attr->type == ATTR_TYPE_STRING) {
 			attr_set_string_value(attr, ptr, argv[i]);
+			ptr += attr->data_size;
 		} else {
 			if (!attr_set_enum_value(attr, ptr, argv[i]))
 				attr_set_value(attr, ptr, argv[i]);
+			ptr += attr->data_size;
 		}
-
-		ptr += attr->data_size;
 	}
 
 	attr_encode(&value, &buf, &len);

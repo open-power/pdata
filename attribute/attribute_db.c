@@ -106,6 +106,18 @@ static bool attr_db_read_all(FILE *fp, struct attr_info *info)
 	return true;
 }
 
+static int spec_size(char *spec)
+{
+	int size = 0, i;
+
+	for (i=0; i<strlen(spec); i++) {
+		int data = spec[i] - '0';
+		size += data;
+	}
+
+	return size;
+}
+
 static bool attr_db_read_attr_data(struct attr *attr, char *data)
 {
 	uint8_t *ptr;
@@ -120,7 +132,16 @@ static bool attr_db_read_attr_data(struct attr *attr, char *data)
 	if (attr->type == ATTR_TYPE_UNKNOWN)
 		return false;
 
-	if (attr->type == ATTR_TYPE_STRING) {
+	if (attr->type == ATTR_TYPE_COMPLEX) {
+		tok = strtok(NULL, " ");
+		if (!tok)
+			return false;
+
+		attr->spec = strdup(tok);
+		assert(attr->spec);
+
+		attr->data_size = spec_size(attr->spec);
+	} else if (attr->type == ATTR_TYPE_STRING) {
 		tok = strtok(NULL, " ");
 		if (!tok)
 			return false;
@@ -155,7 +176,7 @@ static bool attr_db_read_attr_data(struct attr *attr, char *data)
 		}
 	}
 
-	if (attr->type != ATTR_TYPE_STRING) {
+	if (attr->type != ATTR_TYPE_STRING && attr->type != ATTR_TYPE_COMPLEX) {
 		tok = strtok(NULL, " ");
 		if (!tok)
 			return false;
@@ -198,7 +219,21 @@ static bool attr_db_read_attr_data(struct attr *attr, char *data)
 
 	ptr = attr->value;
 	for (i=0; i<attr->size; i++) {
-		if (attr->type == ATTR_TYPE_STRING) {
+		if (attr->type == ATTR_TYPE_COMPLEX) {
+			uint64_t val;
+			int data_size, j;
+
+			for (j=0; j<strlen(attr->spec); j++) {
+				tok = strtok(NULL, " ");
+				if (!tok)
+					return false;
+
+				val = strtoull(tok, NULL, 0);
+				data_size = attr->spec[j] - '0';
+				attr_set_value_num(ptr, data_size, val);
+				ptr += data_size;
+			}
+		} else if (attr->type == ATTR_TYPE_STRING) {
 			tok = strtok(NULL, " ");
 			if (!tok)
 				return false;

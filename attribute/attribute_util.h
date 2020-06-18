@@ -35,5 +35,6 @@ void attr_print_value_num(uint8_t *ptr, int data_size);
 void attr_print_value(struct attr *attr, uint8_t *ptr);
 bool attr_print_enum_value(struct attr *attr, uint8_t *ptr);
 void attr_print_string_value(struct attr *attr, uint8_t *ptr);
+void attr_print_complex_value(struct attr *attr, uint8_t *ptr);
 
 #endif /* __ATTRIBUTE_UTIL_H */

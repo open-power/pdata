@@ -37,6 +37,7 @@ struct {
 	{ ATTR_TYPE_INT32,  "int32", "s32" },
 	{ ATTR_TYPE_INT64,  "int64", "s64" },
 	{ ATTR_TYPE_STRING, "str", "str" },
+	{ ATTR_TYPE_COMPLEX, "complex", "cpx" },
 	{ ATTR_TYPE_UNKNOWN, NULL, NULL },
 };
 
@@ -129,6 +130,11 @@ void attr_copy(struct attr *src, struct attr *dst)
 
 		for (i=0; i<src->dim_count; i++)
 			dst->dim[i] = src->dim[i];
+	}
+
+	if (src->spec) {
+		dst->spec = strdup(src->spec);
+		assert(dst->spec);
 	}
 
 	dst->value = malloc(dst->data_size * dst->size);
@@ -310,6 +316,33 @@ void attr_print_string_value(struct attr *attr, uint8_t *ptr)
 	for (i=0; i<count; i++) {
 		printf("\"%.*s\"", attr->data_size, (char *)ptr);
 		ptr += attr->data_size;
+
+		if (i < count-1)
+			printf(" ");
+	}
+}
+
+void attr_print_complex_value(struct attr *attr, uint8_t *ptr)
+{
+	int count = 1, i, j;
+
+	if (!ptr) {
+		ptr = attr->value;
+		count = attr->size;
+	}
+
+	for (i=0; i<count; i++) {
+		size_t n = strlen(attr->spec);
+
+		for (j=0; j<n; j++) {
+			int data_size = attr->spec[j] - '0';
+
+			attr_print_value_num(ptr, data_size);
+			ptr += data_size;
+
+			if (j < n-1)
+				printf(" ");
+		}
 
 		if (i < count-1)
 			printf(" ");

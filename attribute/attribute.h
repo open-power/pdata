@@ -36,6 +36,7 @@ enum attr_type {
 	ATTR_TYPE_INT32   = 7,
 	ATTR_TYPE_INT64   = 8,
 	ATTR_TYPE_STRING  = 9,
+	ATTR_TYPE_COMPLEX = 10,
 };
 
 struct attr_enum {
@@ -52,6 +53,7 @@ struct attr {
 	int size;
 	int enum_count;
 	struct attr_enum *aenum;
+	char *spec;
 	uint8_t *value;
 };
 

@@ -29,13 +29,42 @@ void attr_encode(struct attr *attr, uint8_t **out, int *outlen)
 {
 	uint8_t *buf;
 	uint32_t buflen;
-	int i;
+	int i, j;
 
 	buflen = attr->size * attr->data_size;
 	buf = calloc(1, buflen);
 	assert(buf);
 
-	if (attr->type == ATTR_TYPE_STRING) {
+	if (attr->type == ATTR_TYPE_COMPLEX) {
+		uint8_t *b = buf;
+		uint8_t *v = attr->value;
+		char ch;
+
+		for (i=0; i<attr->size; i++) {
+			for (j=0; j<strlen(attr->spec); j++) {
+				ch = attr->spec[j];
+
+				if (ch == '1') {
+					*b = *v;
+					b += 1;
+					v += 1;
+				} else if (ch == '2') {
+					*(uint16_t *)b = htobe16(*(uint16_t *)v);
+					b += 2;
+					v += 2;
+				} else if (ch == '4') {
+					*(uint32_t *)b = htobe32(*(uint32_t *)v);
+					b += 4;
+					v += 4;
+				} else if (ch == '8') {
+					*(uint64_t *)b = htobe64(*(uint64_t *)v);
+					b += 8;
+					v += 8;
+				}
+			}
+		}
+
+	} else if (attr->type == ATTR_TYPE_STRING) {
 		memcpy(buf, attr->value, buflen);
 	} else {
 		if (attr->data_size == 1) {
@@ -70,7 +99,7 @@ void attr_encode(struct attr *attr, uint8_t **out, int *outlen)
 
 void attr_decode(struct attr *attr, const uint8_t *buf, int buflen)
 {
-	int i;
+	int i, j;
 
 	assert(buflen == attr->size * attr->data_size);
 
@@ -80,7 +109,36 @@ void attr_decode(struct attr *attr, const uint8_t *buf, int buflen)
 	attr->value = malloc(attr->size * attr->data_size);
 	assert(attr->value);
 
-	if (attr->type == ATTR_TYPE_STRING) {
+	if (attr->type == ATTR_TYPE_COMPLEX) {
+		const uint8_t *b = buf;
+		uint8_t *v = attr->value;
+		char ch;
+
+		for (i=0; i<attr->size; i++) {
+			for (j=0; j<strlen(attr->spec); j++) {
+				ch = attr->spec[j];
+
+				if (ch == '1') {
+					*v = *b;
+					b += 1;
+					v += 1;
+				} else if (ch == '2') {
+					*(uint16_t *)v = be16toh(*(uint16_t *)b);
+					b += 2;
+					v += 2;
+				} else if (ch == '4') {
+					*(uint32_t *)v = be32toh(*(uint32_t *)b);
+					b += 4;
+					v += 4;
+				} else if (ch == '8') {
+					*(uint64_t *)v = be64toh(*(uint64_t *)b);
+					b += 8;
+					v += 8;
+				}
+			}
+		}
+
+	} else if (attr->type == ATTR_TYPE_STRING) {
 		memcpy(attr->value, buf, buflen);
 	} else {
 		if (attr->data_size == 1) {
