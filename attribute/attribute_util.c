@@ -166,3 +166,103 @@ bool attr_set_enum_value(struct attr *attr, uint8_t *ptr, const char *tok)
 
 	return false;
 }
+
+void attr_print_value_num(uint8_t *ptr, int data_size)
+{
+	if (data_size == 1) {
+		uint8_t val = *ptr;
+		printf("0x%02x", val);
+	} else if (data_size == 2) {
+		uint16_t val = *(uint16_t *)ptr;
+		printf("0x%04x", val);
+	} else if (data_size == 4) {
+		uint32_t val = *(uint32_t *)ptr;
+		printf("0x%08x", val);
+	} else if (data_size == 8) {
+		uint64_t val = *(uint64_t *)ptr;
+		printf("0x%016" PRIx64, val);
+	} else {
+		assert(0);
+	}
+}
+
+void attr_print_value(struct attr *attr, uint8_t *ptr)
+{
+	int count = 1, i;
+
+	switch (attr->type) {
+	case ATTR_TYPE_UINT8:
+	case ATTR_TYPE_UINT16:
+	case ATTR_TYPE_UINT32:
+	case ATTR_TYPE_UINT64:
+	case ATTR_TYPE_INT8:
+	case ATTR_TYPE_INT16:
+	case ATTR_TYPE_INT32:
+	case ATTR_TYPE_INT64:
+		break;
+
+	default:
+		assert(0);
+	}
+
+	if (!ptr) {
+		ptr = attr->value;
+		count = attr->size;
+	}
+
+	for (i=0; i<count; i++) {
+		attr_print_value_num(ptr, attr->data_size);
+		ptr += attr->data_size;
+
+		if (i < count-1)
+			printf(" ");
+	}
+}
+
+bool attr_print_enum_value(struct attr *attr, uint8_t *ptr)
+{
+	uint64_t val = 0;
+	int count = 1, i, j;
+
+	if (attr->enum_count == 0)
+		return false;
+
+	if (!ptr) {
+		ptr = attr->value;
+		count = attr->size;
+	}
+
+	for (i=0; i<count; i++) {
+		bool found = false;
+
+		if (attr->data_size == 1) {
+			val = *ptr;
+		} else if (attr->data_size == 2) {
+			val = *(uint16_t *)ptr;
+		} else if (attr->data_size == 4) {
+			val = *(uint32_t *)ptr;
+		} else if (attr->data_size == 8) {
+			val = *(uint64_t *)ptr;
+		} else {
+			assert(0);
+		}
+		ptr += attr->data_size;
+
+		for (j=0; j<attr->enum_count; j++) {
+			struct attr_enum *ae = &attr->aenum[j];
+
+			if (ae->value == val) {
+				printf("%s", ae->key);
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+			printf("UNKNOWN_ENUM");
+
+		if (i < count-1)
+			printf(" ");
+	}
+
+	return true;
+}
