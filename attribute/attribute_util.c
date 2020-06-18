@@ -110,23 +110,59 @@ void attr_copy(struct attr *src, struct attr *dst)
 	memcpy(dst->value, src->value, dst->data_size * dst->size);
 }
 
-void attr_set_value(char *tok, enum attr_type type, uint8_t *ptr)
+void attr_set_value_num(uint8_t *ptr, int data_size, uint64_t val)
 {
-	unsigned long long int data;
-
-	data = strtoull(tok, NULL, 0);
-
-	if (type == ATTR_TYPE_UINT8 || type == ATTR_TYPE_INT8) {
-		uint8_t value = data & 0xff;
+	if (data_size == 1) {
+		uint8_t value = val & 0xff;
 		memcpy(ptr, &value, 1);
-	} else if (type == ATTR_TYPE_UINT16 || type == ATTR_TYPE_INT16) {
-		uint16_t value = data & 0xffff;
+	} else if (data_size == 2) {
+		uint16_t value = val & 0xffff;
 		memcpy(ptr, &value, 2);
-	} else if (type == ATTR_TYPE_UINT32 || type == ATTR_TYPE_INT32) {
-		uint32_t value = data & 0xffffffff;
+	} else if (data_size == 4) {
+		uint32_t value = val & 0xffffffff;
 		memcpy(ptr, &value, 4);
-	} else if (type == ATTR_TYPE_UINT64 || type == ATTR_TYPE_INT64) {
-		uint64_t value = data;
+	} else if (data_size == 8) {
+		uint64_t value = val;
 		memcpy(ptr, &value, 8);
+	} else {
+		assert(0);
 	}
+}
+
+void attr_set_value(struct attr *attr, uint8_t *ptr, const char *tok)
+{
+	uint64_t val;
+
+	switch (attr->type) {
+	case ATTR_TYPE_UINT8:
+	case ATTR_TYPE_UINT16:
+	case ATTR_TYPE_UINT32:
+	case ATTR_TYPE_UINT64:
+	case ATTR_TYPE_INT8:
+	case ATTR_TYPE_INT16:
+	case ATTR_TYPE_INT32:
+	case ATTR_TYPE_INT64:
+		val = strtoull(tok, NULL, 0);
+		attr_set_value_num(ptr, attr->data_size, val);
+		break;
+
+	default:
+		assert(0);
+	}
+}
+
+bool attr_set_enum_value(struct attr *attr, uint8_t *ptr, const char *tok)
+{
+	int i;
+
+	for (i=0; i<attr->enum_count; i++) {
+		struct attr_enum *ae = &attr->aenum[i];
+
+		if (strcmp(ae->key, tok) == 0) {
+			attr_set_value_num(ptr, attr->data_size, ae->value);
+			return true;
+		}
+	}
+
+	return false;
 }

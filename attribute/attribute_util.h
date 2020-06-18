@@ -24,6 +24,8 @@ const char *attr_type_to_string(uint8_t type);
 int attr_type_size(enum attr_type type);
 void attr_copy(struct attr *src, struct attr *dst);
 
-void attr_set_value(char *tok, enum attr_type type, uint8_t *ptr);
+void attr_set_value_num(uint8_t *ptr, int data_size, uint64_t val);
+void attr_set_value(struct attr *attr, uint8_t *ptr, const char *tok);
+bool attr_set_enum_value(struct attr *attr, uint8_t *ptr, const char *tok);
 
 #endif /* __ATTRIBUTE_UTIL_H */

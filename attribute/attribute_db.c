@@ -192,7 +192,7 @@ static bool attr_db_read_attr_data(struct attr *attr, char *data)
 		if (!tok)
 			return false;
 
-		attr_set_value(tok, attr->type, ptr);
+		attr_set_value(attr, ptr, tok);
 		ptr += attr->data_size;
 	}
 
