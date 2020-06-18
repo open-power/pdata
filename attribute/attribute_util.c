@@ -19,7 +19,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
-#include <ctype.h>
 
 #include "attribute.h"
 #include "attribute_util.h"
@@ -109,34 +108,4 @@ void attr_copy(struct attr *src, struct attr *dst)
 	dst->value = malloc(dst->data_size * dst->size);
 	assert(dst->value);
 	memcpy(dst->value, src->value, dst->data_size * dst->size);
-}
-
-char *dtree_name_to_class(const char *name)
-{
-	char *tmp, *tok, *class_name;
-	size_t i, n;
-
-	if (name[0] == '\0')
-		return strdup("root");
-
-	tmp = strdup(name);
-	assert(tmp);
-
-	tok = strtok(tmp, "@");
-	assert(tok);
-
-	n = strlen(tok);
-	for (i = n-1; i >= 0; i--) {
-		if (isdigit(tok[i]))
-			tok[i] = '\0';
-		else
-			break;
-	}
-
-	class_name = strdup(tok);
-	assert(class_name);
-
-	free(tmp);
-
-	return class_name;
 }

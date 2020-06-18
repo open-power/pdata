@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include "libdtm/dtm.h"
 
@@ -108,6 +109,36 @@ const char *dtree_to_cronus_class(const char *dtree_class)
 	}
 
 	return NULL;
+}
+
+static char *dtree_name_to_class(const char *name)
+{
+	char *tmp, *tok, *class_name;
+	size_t i, n;
+
+	if (name[0] == '\0')
+		return strdup("root");
+
+	tmp = strdup(name);
+	assert(tmp);
+
+	tok = strtok(tmp, "@");
+	assert(tok);
+
+	n = strlen(tok);
+	for (i = n-1; i >= 0; i--) {
+		if (isdigit(tok[i]))
+			tok[i] = '\0';
+		else
+			break;
+	}
+
+	class_name = strdup(tok);
+	assert(class_name);
+
+	free(tmp);
+
+	return class_name;
 }
 
 struct cronus_target {

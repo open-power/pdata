@@ -24,6 +24,4 @@ const char *attr_type_to_string(uint8_t type);
 int attr_type_size(enum attr_type type);
 void attr_copy(struct attr *src, struct attr *dst);
 
-char *dtree_name_to_class(const char *name);
-
 #endif /* __ATTRIBUTE_UTIL_H */
