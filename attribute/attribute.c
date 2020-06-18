@@ -282,44 +282,7 @@ static int do_export_node(struct dtm_node *node, void *priv)
 
 static void do_export_data_type(struct attr *attr)
 {
-	switch (attr->type) {
-	case ATTR_TYPE_UINT8:
-		printf("u8");
-		break;
-
-	case ATTR_TYPE_UINT16:
-		printf("u16");
-		break;
-
-	case ATTR_TYPE_UINT32:
-		printf("u32");
-		break;
-
-	case ATTR_TYPE_UINT64:
-		printf("u64");
-		break;
-
-	case ATTR_TYPE_INT8:
-		printf("s8");
-		break;
-
-	case ATTR_TYPE_INT16:
-		printf("s16");
-		break;
-
-	case ATTR_TYPE_INT32:
-		printf("s32");
-		break;
-
-	case ATTR_TYPE_INT64:
-		printf("s64");
-		break;
-
-	default:
-		printf("UNKNWON");
-		break;
-	}
-
+	printf("%s", attr_type_to_short_string(attr->type));
 	if (attr->enum_count > 0) {
 		printf("e");
 	}
