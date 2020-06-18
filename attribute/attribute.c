@@ -501,16 +501,14 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 {
 	struct dtm_property *prop;
 	struct attr *attr, value;
-	char *attr_name, *data_type, *value_str;
+	char *attr_name, *data_type;
 	char *tok, *saveptr = NULL;
 	const uint8_t *cbuf;
-	uint8_t *buf;
+	uint8_t *buf, *ptr;
 	int buflen;
-	unsigned long long data;
 	int idx[3] = { 0, 0, 0 };
 	int dim[3] = { -1, -1, -1 };
 	int i, index;
-	bool is_enum = false;
 
 	if (!state->node)
 		return true;
@@ -548,7 +546,6 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 
 	if (data_type[strlen(data_type)-1] == 'e') {
 		data_type[strlen(data_type)-1] = '\0';
-		is_enum = true;
 	}
 
 	for (i=0; i<3; i++) {
@@ -560,11 +557,6 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 		tok[strlen(tok)-1] = '\0';
 		dim[i] = atoi(tok);
 	}
-
-	/* attribute value */
-	value_str = strtok_r(NULL, " ", &saveptr);
-	if (!value_str)
-		return false;
 
 	prop = dtm_node_get_property(state->node, attr_name);
 	if (!prop) {
@@ -581,6 +573,11 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 	attr = attr_db_attr(state->ainfo, attr_name);
 	if (!attr) {
 		fprintf(stderr, "  %s: attribute unknown\n", attr_name);
+		return false;
+	}
+
+	if (attr_type_from_short_string(data_type) != attr->type) {
+		fprintf(stderr, "  %s: type mismatch\n", attr_name);
 		return false;
 	}
 
@@ -622,43 +619,18 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 		index = idx[0] * attr->dim[0] + idx[1] * attr->dim[1] + idx[2];
 	}
 
-	if (is_enum) {
-		bool found = false;
-
-		for (i=0; i<attr->enum_count; i++) {
-			if (!strcmp(attr->aenum[i].key, value_str)) {
-				data = attr->aenum[i].value;
-				found = true;
-				break;
-			}
-		}
-		assert(found);
-	} else {
-		data = strtoull(value_str, NULL, 0);
-	}
-
 	attr_copy(attr, &value);
+	attr_decode(&value, cbuf, buflen);
 
-	if (value.data_size == 1) {
-		uint8_t *ptr = (uint8_t *)value.value;
-		uint8_t val = data;
-		ptr[index] =  val;
+	ptr = value.value + index * value.data_size;
 
-	} else if (value.data_size == 2) {
-		uint16_t *ptr = (uint16_t *)value.value;
-		uint16_t val = data;
-		ptr[index] = val;
+	/* attribute value */
+	tok = strtok_r(NULL, " ", &saveptr);
+	if (!tok)
+		return false;
 
-	} else if (value.data_size == 4) {
-		uint32_t *ptr = (uint32_t *)value.value;
-		uint32_t val = data;
-		ptr[index] = val;
-
-	} else if (value.data_size == 8) {
-		uint64_t *ptr = (uint64_t *)value.value;
-		uint64_t val = data;
-		ptr[index] = val;
-	}
+	if (!attr_set_enum_value(attr, ptr, tok))
+		attr_set_value(attr, ptr, tok);
 
 	attr_encode(&value, &buf, &buflen);
 	dtm_prop_set_value(prop, buf, buflen);
@@ -868,7 +840,7 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 	struct dtm_node *root, *node;
 	struct dtm_property *prop;
 	const void *val;
-	uint8_t *buf;
+	uint8_t *buf, *ptr;
 	struct attr_info ainfo;
 	struct attr *attr, value;
 	int len, i;
@@ -920,20 +892,12 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 		return 4;
 	}
 
+	ptr = value.value;
 	for (i=0; i<value.size; i++) {
-		unsigned long long data;
+		if (!attr_set_enum_value(attr, ptr, argv[i]))
+			attr_set_value(attr, ptr, argv[i]);
 
-		data = strtoull(argv[i], NULL, 0);
-
-		if (value.data_size == 1) {
-			value.value[i] = data & 0xff;
-		} else if (value.data_size == 2) {
-			((uint16_t *)value.value)[i] = data & 0xffff;
-		} else if (value.data_size == 4) {
-			((uint32_t *)value.value)[i] = data & 0xffffffff;
-		} else if (value.data_size == 8) {
-			((uint64_t *)value.value)[i] = data;
-		}
+		ptr += attr->data_size;
 	}
 
 	attr_encode(&value, &buf, &len);
