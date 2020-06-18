@@ -21,6 +21,8 @@
 
 enum attr_type attr_type_from_string(char *str);
 const char *attr_type_to_string(uint8_t type);
+enum attr_type attr_type_from_short_string(char *str);
+const char *attr_type_to_short_string(uint8_t type);
 int attr_type_size(enum attr_type type);
 void attr_copy(struct attr *src, struct attr *dst);
 

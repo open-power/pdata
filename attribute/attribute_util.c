@@ -26,16 +26,17 @@
 struct {
 	enum attr_type type;
 	char *label;
+	char *short_label;
 } attr_type_map[] = {
-	{ ATTR_TYPE_UINT8,  "uint8" },
-	{ ATTR_TYPE_UINT16, "uint16" },
-	{ ATTR_TYPE_UINT32, "uint32" },
-	{ ATTR_TYPE_UINT64, "uint64" },
-	{ ATTR_TYPE_INT8,   "int8" },
-	{ ATTR_TYPE_INT16,  "int16" },
-	{ ATTR_TYPE_INT32,  "int32" },
-	{ ATTR_TYPE_INT64,  "int64" },
-	{ ATTR_TYPE_UNKNOWN, NULL },
+	{ ATTR_TYPE_UINT8,  "uint8", "u8" },
+	{ ATTR_TYPE_UINT16, "uint16", "u16" },
+	{ ATTR_TYPE_UINT32, "uint32", "u32" },
+	{ ATTR_TYPE_UINT64, "uint64", "u64" },
+	{ ATTR_TYPE_INT8,   "int8", "s8" },
+	{ ATTR_TYPE_INT16,  "int16", "s16" },
+	{ ATTR_TYPE_INT32,  "int32", "s32" },
+	{ ATTR_TYPE_INT64,  "int64", "s64" },
+	{ ATTR_TYPE_UNKNOWN, NULL, NULL },
 };
 
 enum attr_type attr_type_from_string(char *str)
@@ -57,6 +58,30 @@ const char *attr_type_to_string(uint8_t type)
 	for (i=0; attr_type_map[i].label; i++) {
 		if (type == attr_type_map[i].type)
 			return attr_type_map[i].label;
+	}
+
+	return "<NULL>";
+}
+
+enum attr_type attr_type_from_short_string(char *str)
+{
+	int i;
+
+	for (i=0; attr_type_map[i].label; i++) {
+		if (strcmp(str, attr_type_map[i].short_label) == 0)
+			return attr_type_map[i].type;
+	}
+
+	return ATTR_TYPE_UNKNOWN;
+}
+
+const char *attr_type_to_short_string(uint8_t type)
+{
+	int i;
+
+	for (i=0; attr_type_map[i].label; i++) {
+		if (type == attr_type_map[i].type)
+			return attr_type_map[i].short_label;
 	}
 
 	return "<NULL>";
