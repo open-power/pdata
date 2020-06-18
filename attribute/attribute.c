@@ -162,8 +162,12 @@ static int do_dump_print_node(struct dtm_node *node, void *priv)
 
 static void do_dump_value(struct attr *attr)
 {
-	if (!attr_print_enum_value(attr, NULL))
-		attr_print_value(attr, NULL);
+	if (attr->type == ATTR_TYPE_STRING) {
+		attr_print_string_value(attr, NULL);
+	} else {
+		if (!attr_print_enum_value(attr, NULL))
+			attr_print_value(attr, NULL);
+	}
 }
 
 static int do_dump_print_prop(struct dtm_node *node, struct dtm_property *prop, void *priv)
@@ -290,8 +294,12 @@ static void do_export_data_type(struct attr *attr)
 
 static void do_export_value_string(struct attr *attr, uint8_t *value)
 {
-	if (!attr_print_enum_value(attr, value))
-		attr_print_value(attr, value);
+	if (attr->type == ATTR_TYPE_STRING) {
+		attr_print_string_value(attr, value);
+	} else {
+		if (!attr_print_enum_value(attr, value))
+			attr_print_value(attr, value);
+	}
 }
 
 static void do_export_prop_scalar(struct attr *attr)
@@ -629,8 +637,23 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 	if (!tok)
 		return false;
 
-	if (!attr_set_enum_value(attr, ptr, tok))
-		attr_set_value(attr, ptr, tok);
+	if (attr->type == ATTR_TYPE_STRING) {
+		size_t n;
+
+		if (tok[0] != '"')
+			return false;
+
+		n = strlen(tok);
+		if (tok[n-1] != '"')
+			return false;
+
+		tok[n-1] = '\0';
+
+		attr_set_string_value(attr, ptr, &tok[1]);
+	} else {
+		if (!attr_set_enum_value(attr, ptr, tok))
+			attr_set_value(attr, ptr, tok);
+	}
 
 	attr_encode(&value, &buf, &buflen);
 	dtm_prop_set_value(prop, buf, buflen);
@@ -782,8 +805,12 @@ static int do_read(const char *dtb, const char *infodb, const char *target, cons
 
 	printf(" = ");
 
-	if (!attr_print_enum_value(&value, NULL))
-		attr_print_value(&value, NULL);
+	if (attr->type == ATTR_TYPE_STRING) {
+		attr_print_string_value(&value, NULL);
+	} else {
+		if (!attr_print_enum_value(&value, NULL))
+			attr_print_value(&value, NULL);
+	}
 
 	printf("\n");
 
@@ -894,8 +921,12 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 
 	ptr = value.value;
 	for (i=0; i<value.size; i++) {
-		if (!attr_set_enum_value(attr, ptr, argv[i]))
-			attr_set_value(attr, ptr, argv[i]);
+		if (attr->type == ATTR_TYPE_STRING) {
+			attr_set_string_value(attr, ptr, argv[i]);
+		} else {
+			if (!attr_set_enum_value(attr, ptr, argv[i]))
+				attr_set_value(attr, ptr, argv[i]);
+		}
 
 		ptr += attr->data_size;
 	}

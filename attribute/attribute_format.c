@@ -35,30 +35,33 @@ void attr_encode(struct attr *attr, uint8_t **out, int *outlen)
 	buf = calloc(1, buflen);
 	assert(buf);
 
-	/* data bytes */
-	if (attr->data_size == 1) {
-		memcpy(buf, attr->value, attr->size * attr->data_size);
+	if (attr->type == ATTR_TYPE_STRING) {
+		memcpy(buf, attr->value, buflen);
+	} else {
+		if (attr->data_size == 1) {
+			memcpy(buf, attr->value, attr->size * attr->data_size);
 
-	} else if (attr->data_size == 2) {
-		uint16_t *b = (uint16_t *)buf;
-		uint16_t *v = (uint16_t *)attr->value;
+		} else if (attr->data_size == 2) {
+			uint16_t *b = (uint16_t *)buf;
+			uint16_t *v = (uint16_t *)attr->value;
 
-		for (i=0; i<attr->size; i++)
-			b[i] = htobe16(v[i]);
+			for (i=0; i<attr->size; i++)
+				b[i] = htobe16(v[i]);
 
-	} else if (attr->data_size == 4) {
-		uint32_t *b = (uint32_t *)buf;
-		uint32_t *v = (uint32_t *)attr->value;
+		} else if (attr->data_size == 4) {
+			uint32_t *b = (uint32_t *)buf;
+			uint32_t *v = (uint32_t *)attr->value;
 
-		for (i=0; i<attr->size; i++)
-			b[i] = htobe32(v[i]);
+			for (i=0; i<attr->size; i++)
+				b[i] = htobe32(v[i]);
 
-	} else if (attr->data_size == 8) {
-		uint64_t *b = (uint64_t *)buf;
-		uint64_t *v = (uint64_t *)attr->value;
+		} else if (attr->data_size == 8) {
+			uint64_t *b = (uint64_t *)buf;
+			uint64_t *v = (uint64_t *)attr->value;
 
-		for (i=0; i<attr->size; i++)
-			b[i] = htobe64(v[i]);
+			for (i=0; i<attr->size; i++)
+				b[i] = htobe64(v[i]);
+		}
 	}
 
 	*out = buf;
@@ -77,29 +80,32 @@ void attr_decode(struct attr *attr, const uint8_t *buf, int buflen)
 	attr->value = malloc(attr->size * attr->data_size);
 	assert(attr->value);
 
-	/* data bytes */
-	if (attr->data_size == 1) {
+	if (attr->type == ATTR_TYPE_STRING) {
 		memcpy(attr->value, buf, buflen);
+	} else {
+		if (attr->data_size == 1) {
+			memcpy(attr->value, buf, buflen);
 
-	} else if (attr->data_size == 2) {
-		uint16_t *b = (uint16_t *)buf;
-		uint16_t *v = (uint16_t *)attr->value;
+		} else if (attr->data_size == 2) {
+			uint16_t *b = (uint16_t *)buf;
+			uint16_t *v = (uint16_t *)attr->value;
 
-		for (i=0; i<attr->size; i++)
-			v[i] = be16toh(b[i]);
+			for (i=0; i<attr->size; i++)
+				v[i] = be16toh(b[i]);
 
-	} else if (attr->data_size == 4) {
-		uint32_t *b = (uint32_t *)buf;
-		uint32_t *v = (uint32_t *)attr->value;
+		} else if (attr->data_size == 4) {
+			uint32_t *b = (uint32_t *)buf;
+			uint32_t *v = (uint32_t *)attr->value;
 
-		for (i=0; i<attr->size; i++)
-			v[i] = be32toh(b[i]);
+			for (i=0; i<attr->size; i++)
+				v[i] = be32toh(b[i]);
 
-	} else if (attr->data_size == 8) {
-		uint64_t *b = (uint64_t *)buf;
-		uint64_t *v = (uint64_t *)attr->value;
+		} else if (attr->data_size == 8) {
+			uint64_t *b = (uint64_t *)buf;
+			uint64_t *v = (uint64_t *)attr->value;
 
-		for (i=0; i<attr->size; i++)
-			v[i] = htobe64(b[i]);
+			for (i=0; i<attr->size; i++)
+				v[i] = htobe64(b[i]);
+		}
 	}
 }

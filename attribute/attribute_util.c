@@ -36,6 +36,7 @@ struct {
 	{ ATTR_TYPE_INT16,  "int16", "s16" },
 	{ ATTR_TYPE_INT32,  "int32", "s32" },
 	{ ATTR_TYPE_INT64,  "int64", "s64" },
+	{ ATTR_TYPE_STRING, "str", "str" },
 	{ ATTR_TYPE_UNKNOWN, NULL, NULL },
 };
 
@@ -192,6 +193,11 @@ bool attr_set_enum_value(struct attr *attr, uint8_t *ptr, const char *tok)
 	return false;
 }
 
+void attr_set_string_value(struct attr *attr, uint8_t *ptr, const char *tok)
+{
+	strncpy((char *)ptr, tok, attr->data_size);
+}
+
 void attr_print_value_num(uint8_t *ptr, int data_size)
 {
 	if (data_size == 1) {
@@ -290,4 +296,22 @@ bool attr_print_enum_value(struct attr *attr, uint8_t *ptr)
 	}
 
 	return true;
+}
+
+void attr_print_string_value(struct attr *attr, uint8_t *ptr)
+{
+	int count = 1, i;
+
+	if (!ptr) {
+		ptr = attr->value;
+		count = attr->size;
+	}
+
+	for (i=0; i<count; i++) {
+		printf("\"%.*s\"", attr->data_size, (char *)ptr);
+		ptr += attr->data_size;
+
+		if (i < count-1)
+			printf(" ");
+	}
 }

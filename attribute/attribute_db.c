@@ -120,7 +120,15 @@ static bool attr_db_read_attr_data(struct attr *attr, char *data)
 	if (attr->type == ATTR_TYPE_UNKNOWN)
 		return false;
 
-	attr->data_size = attr_type_size(attr->type);
+	if (attr->type == ATTR_TYPE_STRING) {
+		tok = strtok(NULL, " ");
+		if (!tok)
+			return false;
+
+		attr->data_size = atoi(tok);
+	} else {
+		attr->data_size = attr_type_size(attr->type);
+	}
 	assert(attr->data_size > 0);
 
 	tok = strtok(NULL, " ");
@@ -147,28 +155,30 @@ static bool attr_db_read_attr_data(struct attr *attr, char *data)
 		}
 	}
 
-	tok = strtok(NULL, " ");
-	if (!tok)
-		return false;
+	if (attr->type != ATTR_TYPE_STRING) {
+		tok = strtok(NULL, " ");
+		if (!tok)
+			return false;
 
-	attr->enum_count = atoi(tok);
-	if (attr->enum_count > 0) {
-		attr->aenum = (struct attr_enum *)malloc(attr->enum_count * sizeof(struct attr_enum));
-		assert(attr->aenum);
+		attr->enum_count = atoi(tok);
+		if (attr->enum_count > 0) {
+			attr->aenum = (struct attr_enum *)malloc(attr->enum_count * sizeof(struct attr_enum));
+			assert(attr->aenum);
 
-		for (i=0; i<attr->enum_count; i++) {
-			tok = strtok(NULL, " ");
-			if (!tok)
-				return false;
+			for (i=0; i<attr->enum_count; i++) {
+				tok = strtok(NULL, " ");
+				if (!tok)
+					return false;
 
-			attr->aenum[i].key = strdup(tok);
-			assert(attr->aenum[i].key);
+				attr->aenum[i].key = strdup(tok);
+				assert(attr->aenum[i].key);
 
-			tok = strtok(NULL, " ");
-			if (!tok)
-				return false;
+				tok = strtok(NULL, " ");
+				if (!tok)
+					return false;
 
-			attr->aenum[i].value = strtoull(tok, NULL, 0);
+				attr->aenum[i].value = strtoull(tok, NULL, 0);
+			}
 		}
 	}
 
@@ -188,14 +198,22 @@ static bool attr_db_read_attr_data(struct attr *attr, char *data)
 
 	ptr = attr->value;
 	for (i=0; i<attr->size; i++) {
-		tok = strtok(NULL, " ");
-		if (!tok)
-			return false;
+		if (attr->type == ATTR_TYPE_STRING) {
+			tok = strtok(NULL, " ");
+			if (!tok)
+				return false;
 
-		if (!attr_set_enum_value(attr, ptr, tok))
-			attr_set_value(attr, ptr, tok);
+			attr_set_string_value(attr, ptr, tok);
+			ptr += attr->data_size;
+		} else {
+			tok = strtok(NULL, " ");
+			if (!tok)
+				return false;
 
-		ptr += attr->data_size;
+			if (!attr_set_enum_value(attr, ptr, tok))
+				attr_set_value(attr, ptr, tok);
+			ptr += attr->data_size;
+		}
 	}
 
 	return true;

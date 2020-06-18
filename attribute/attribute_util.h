@@ -29,9 +29,11 @@ void attr_copy(struct attr *src, struct attr *dst);
 void attr_set_value_num(uint8_t *ptr, int data_size, uint64_t val);
 void attr_set_value(struct attr *attr, uint8_t *ptr, const char *tok);
 bool attr_set_enum_value(struct attr *attr, uint8_t *ptr, const char *tok);
+void attr_set_string_value(struct attr *attr, uint8_t *ptr, const char *tok);
 
 void attr_print_value_num(uint8_t *ptr, int data_size);
 void attr_print_value(struct attr *attr, uint8_t *ptr);
 bool attr_print_enum_value(struct attr *attr, uint8_t *ptr);
+void attr_print_string_value(struct attr *attr, uint8_t *ptr);
 
 #endif /* __ATTRIBUTE_UTIL_H */
