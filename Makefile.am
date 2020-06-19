@@ -8,15 +8,15 @@ datadir = ${datarootdir}/pdata
 data_DATA =
 CLEANFILES =
 
-if BUILD_LIBS
-lib_LTLIBRARIES += libfdt-traverse.la libfdt-attr.la
+if BUILD_DTB
+data_DATA += p9.dtb p10.dtb
+CLEANFILES += p9.dtb p10.dtb
 endif
 
 if BUILD_TOOLS
+lib_LTLIBRARIES += libfdt-traverse.la libfdt-attr.la
 bin_PROGRAMS = attributes
-data_DATA += p9.dtb p10.dtb
 noinst_LTLIBRARIES = libdtm.la
-CLEANFILES += p9.dtb p10.dtb
 endif
 EXTRA_PROGRAMS = attributes
 
