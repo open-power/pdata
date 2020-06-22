@@ -350,6 +350,14 @@ sub processTargetPath
     # Assign node member values for the last node based on last key(path name) in thn given path
     $lastNode->compatible($mrwTargetList{$TargetID} -> MRWTarget::targetType);
     $lastNode->attributeList($mrwTargetList{$TargetID} -> MRWTarget::targetAttrList);
+
+    # Using CHIP_UNIT for index attribute if exist
+    # because unit id should be unique within proc target as per pdbg
+    # expectation for address translation
+    if (exists ${$lastNode->attributeList}{"CHIP_UNIT"})
+    {
+        $lastNode->index(${$lastNode->attributeList}{"CHIP_UNIT"}->value);
+    }
 }
 
 sub createNode
