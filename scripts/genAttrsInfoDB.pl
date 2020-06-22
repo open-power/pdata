@@ -309,12 +309,6 @@ sub getInfoDBTgtsData
         if (!exists $uniqueTgts{$targetType})
         {
             $uniqueTgts{$targetType} = undef;
-
-            # Adding below attributes because those attributes added during
-            # dts generation for targets
-            $uniqueTgts{$targetType}{"HWAS_STATE"} = $infoDBAttrsList{"HWAS_STATE"}->index;
-            $uniqueTgts{$targetType}{"PHYS_BIN_PATH"} = $infoDBAttrsList{"PHYS_BIN_PATH"}->index;
-            $uniqueTgts{$targetType}{"PHYS_DEV_PATH"} = $infoDBAttrsList{"PHYS_DEV_PATH"}->index;
         }
 
         foreach my $attr (keys %{$mrwTargetList{$MRWTgt}->targetAttrList})

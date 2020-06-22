@@ -3,6 +3,15 @@
         <attribute>
             <id>TYPE</id>
         </attribute>
+        <attribute>
+            <id>HWAS_STATE</id>
+        </attribute>
+        <attribute>
+            <id>PHYS_DEV_PATH</id>
+        </attribute>
+        <attribute>
+            <id>PHYS_BIN_PATH</id>
+        </attribute>
         <id>base</id>
     </targetType>
     <targetType>

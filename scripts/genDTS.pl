@@ -444,21 +444,17 @@ sub addTargetDataIntoDTSFile
 	my $nodeIndexHex = sprintf("<0x%02x>", $nodeIndex);
 	print {$dtsFHandle} "index = $nodeIndexHex;\n" if $indexReqToAdd ne 1;
 
-    # TODO Need to revisit adding same attributes into list of targets
-    $attributeList{"HWAS_STATE"} = AttributeData->new() if ( (!exists $attributeList{"HWAS_STATE"}) and ($indexReqToAdd ne 1) );
-
     # Adding PHYS_DEV_PATH and PHYS_BIN_PATH attributes value by using PHYS_PATH attribute.
     # because, PHYS_PATH type is class which is not supported in device tree.
-    if ( $compatible ne "unit-fsi" and $compatible ne "")
+    if (exists $attributeList{"PHYS_DEV_PATH"})
     {
-        my $physicalPathVal = $attributeList{"PHYS_PATH"}->value;
-
-        $attributeList{"PHYS_DEV_PATH"} = AttributeData->new();
-        $attributeList{"PHYS_DEV_PATH"}->value($physicalPathVal);
-
-        $attributeList{"PHYS_BIN_PATH"} = AttributeData->new();
-        $attributeList{"PHYS_BIN_PATH"}->value(getBinaryFormatForPhysPath($physicalPathVal));
+        $attributeList{"PHYS_DEV_PATH"}->value($attributeList{"PHYS_PATH"}->value);
     }
+    if (exists $attributeList{"PHYS_BIN_PATH"})
+    {
+        $attributeList{"PHYS_BIN_PATH"}->value(getBinaryFormatForPhysPath($attributeList{"PHYS_PATH"}->value));
+    }
+
     # Attributes
     foreach my $AttrID ( sort ( keys %attributeList ) )
     {
