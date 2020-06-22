@@ -556,11 +556,21 @@ sub addTargetDataIntoDTSFile
                 my $enumDef = $simpleType->enumDefinition;
                 $enumName = $enumDef->default if $enumName eq "";
 
-                # Getting enum value from enum name
-                my $enumVal = getEnumVal(\@{$enumDef->enumeratorList}, $enumName);
+                my $enumVal;
+                if ($enumName ne "0")
+                {
+                    # Getting enum value from enum name
+                    $enumVal = getEnumVal(\@{$enumDef->enumeratorList}, $enumName);
 
-                # Setting first enum value as default value,
-                $enumVal = getEnumVal(\@{$enumDef->enumeratorList}, "") if $enumVal eq "";
+                    # Setting first enum value as default value,
+                    $enumVal = getEnumVal(\@{$enumDef->enumeratorList}, "") if $enumVal eq "";
+                }
+                else
+                {
+                    # FAPI (ekb) Enum attribute will may have initToZero tag
+                    # so, default value will be 0
+                    $enumVal = $enumName;
+                }
 
                 my @arrayValues;
                 push(@arrayValues, $enumVal);
