@@ -328,9 +328,13 @@ sub getInfoDBTgtsData
     # Preparing FAPI targets with attributes index
     foreach my $FAPITgt (keys %fapiTargetList)
     {
+        # Make sure all fapi targets present in added unique mrw targets list
+        # to avoid adding fapi target parents which are not required because,
+        # those parents target attributes are already added into respective
+        # child fapi targets.
         if (!exists $uniqueTgts{$FAPITgt})
         {
-            $uniqueTgts{$FAPITgt} = undef;
+            next;
         }
 
         foreach my $attr (keys %{$fapiTargetList{$FAPITgt}->targetAttrList})
