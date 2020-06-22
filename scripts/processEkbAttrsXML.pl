@@ -454,6 +454,10 @@ sub createAttrFromFapi(\%)
         $targattr->{simpleType}->{$valueType}->{default} =
             $fapiattr->{default};
     }
+    elsif (exists $fapiattr->{initToZero})
+    {
+        $targattr->{simpleType}->{$valueType}->{default} = 0;
+    }
 
     #array: modifies simpleType
     if( exists $fapiattr->{array} )
