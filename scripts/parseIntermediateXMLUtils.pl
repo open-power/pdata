@@ -498,6 +498,9 @@ sub getTargetsData
         }
     }
 
+    # MRW targets doesn't have parent tag
+    addTgtsParentAttrs(\%fapiTargetList) if (%fapiTargetList);
+
     return (\%mrwTargetList, \%fapiTargetList);
 }
 
@@ -622,6 +625,36 @@ sub parseFAPITargetsData
     }
 
     return ($FAPITargetID, $fapiTarget);
+}
+
+sub addTgtsParentAttrs
+{
+    my %targetsList = %{$_[0]};
+
+    foreach my $childTgt ( keys %targetsList )
+    {
+        my $currTgt = $childTgt;
+        Parent:
+            my $tgtParentId = $targetsList{$currTgt}->targetParent;
+            next if $tgtParentId eq ""; # Parent wont be present for ekb targets
+
+            my %tgtParentAttrs = %{$targetsList{$tgtParentId}->targetAttrList};
+            foreach my $attr ( keys %tgtParentAttrs )
+            {
+                if (exists ${$targetsList{$childTgt}->targetAttrList}{$attr})
+                {
+                    next;
+                }
+                ${$targetsList{$childTgt}->targetAttrList}{$attr} = $tgtParentAttrs{$attr};
+            }
+
+            # If reached base parent then pick next target
+            next if $tgtParentId eq "base";
+
+            # Goto grand parent to get them attributes by using current parent id
+            $currTgt = $tgtParentId;
+            goto Parent;
+    }
 }
 
 # need to return 1 for other modules to include this
