@@ -657,7 +657,7 @@ sub setDTSFormatValueForSimpleAttr
             my $fByte = ( $pValue >> 8 ) & 0x00FF;
             my $sByte = $pValue & 0x00FF;
 
-            my $tmp = sprintf("%02X %02X", $fByte, $sByte);
+            my $tmp = sprintf("%02d %02d", $fByte, $sByte);
             $begFormatSym = "[" if $begFormatSym eq "";
             $dtsFormatedVal .= $tmp;
             $dtsFormatedVal .= " " if $valSize > 1;
