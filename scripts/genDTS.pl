@@ -468,10 +468,10 @@ sub addTargetDataIntoDTSFile
         {
             my $attrVal = $attributeList{$AttrID} -> AttributeData::value;
 
-            # TODO Need to revisit setting CHIP_UNIT_POS value from FAPI_POS
+            # TODO Need to revisit setting CHIP_UNIT_POS value from CHIP_UNIT
             # Added beacuse HWPs expecting CHIP_UNIT_POS value and its should come MRW
             # So once added in MRW need to remove
-            $attrVal = $attributeList{"FAPI_POS"} -> AttributeData::value if $AttrID eq "CHIP_UNIT_POS";
+            $attrVal = $attributeList{"CHIP_UNIT"} -> AttributeData::value if $AttrID eq "CHIP_UNIT_POS";
             # Getting default value from attribute definition if not value is defined
             my $simpleType = $attributeDefList{$AttrID}-> AttributeDefinition::simpleType;
             my $simpleTypeDefault = $simpleType->default;
