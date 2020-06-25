@@ -711,12 +711,28 @@ sub getEnumVal
     my @enumeratorList = @{$_[0]};
     my $enumName = $_[1];
 
-    foreach my $enumPair ( @enumeratorList )
+    if ($enumName ne "")
     {
-        return $enumPair->[1] if $enumName eq $enumPair->[0];
+        # check enum name is hex in enumeratorList
+        # to match with given enum name
+        if ((substr($enumName, 0, 2) eq "0x") and
+            (substr($enumeratorList[0][0], 0, 2) ne "0x"))
+        {
+            $enumName = hex($enumName);
+        }
+
+        foreach my $enumPair ( @enumeratorList )
+        {
+            return $enumPair->[1] if $enumName eq $enumPair->[0];
+        }
     }
-    # Return first enum value if not found for given enum or enum name is empty
-    return $enumeratorList[0][1];
+    else
+    {
+        # Return first enum value if enum name is empty
+        return $enumeratorList[0][1];
+    }
+
+    return "";
 }
 
 sub getBinaryFormatForPhysPath
