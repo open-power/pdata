@@ -985,6 +985,60 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 	return 0;
 }
 
+static void bmc_usage(const char *prog)
+{
+	fprintf(stderr, "Usage: %s export\n", prog);
+	fprintf(stderr, "       %s import <attr-dump>\n", prog);
+	fprintf(stderr, "       %s read <target> <attribute>\n", prog);
+	fprintf(stderr, "       %s write <target> <attribute> <value>\n", prog);
+	fprintf(stderr, "       %s translate <target>\n", prog);
+	exit(1);
+}
+
+static int bmc_main(const char *dtb, const char *infodb, int argc, const char **argv)
+{
+	int ret = -1;
+
+	if (argc < 2)
+		bmc_usage(argv[0]);
+
+	if (strcmp(argv[1], "export") == 0) {
+		if (argc != 2)
+			bmc_usage(argv[0]);
+
+		ret = do_export(dtb, infodb);
+
+	} else if (strcmp(argv[1], "import") == 0) {
+		if (argc != 3)
+			bmc_usage(argv[0]);
+
+		ret = do_import(dtb, infodb, argv[2]);
+
+	} else if (strcmp(argv[1], "read") == 0) {
+		if (argc != 4)
+			bmc_usage(argv[0]);
+
+		ret = do_read(dtb, infodb, argv[2], argv[3]);
+
+	} else if (strcmp(argv[1], "translate") == 0) {
+		if (argc != 3)
+			bmc_usage(argv[0]);
+
+		ret = do_translate(dtb, argv[2]);
+
+	} else if (strcmp(argv[1], "write") == 0) {
+		if (argc < 5)
+			bmc_usage(argv[0]);
+
+		ret = do_write(dtb, infodb, argv[2], argv[3], &argv[4], argc-4);
+
+	} else {
+		bmc_usage(argv[0]);
+	}
+
+	return ret;
+}
+
 static void usage(const char *prog)
 {
 	fprintf(stderr, "Usage: %s create <dtb> <infodb> <out-dtb>\n", prog);
@@ -999,7 +1053,14 @@ static void usage(const char *prog)
 
 int main(int argc, const char **argv)
 {
+	const char *dtb, *infodb;
 	int ret = -1;
+
+	dtb = getenv("PDBG_DTB");
+	infodb = getenv("PDATA_INFODB");
+	if (dtb && infodb) {
+		return bmc_main(dtb, infodb, argc, argv);
+	}
 
 	if (argc < 2)
 		usage(argv[0]);
