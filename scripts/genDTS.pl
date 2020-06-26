@@ -582,9 +582,12 @@ sub addTargetDataIntoDTSFile
             }
             elsif ( $simpleType->DataType eq "string")
             {
-                my $property = $attrVal eq "" ? $AttrID : "$AttrID = \"$attrVal\"";
+                # Reducing one byte from size to exclude NULL
+                # because dtc will add null for string type
+                my $size = ($simpleType->stringSize) - 1;
+                my $strAttrVal = pack("Z$size", $attrVal);
                 my @arrayValues;
-                push(@arrayValues, $attrVal);
+                push(@arrayValues, $strAttrVal);
                 setDTSFormatValueForSimpleAttr($AttrID, $simpleType->DataType, \@arrayValues, 1)
             }
         }
