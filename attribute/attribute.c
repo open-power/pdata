@@ -872,6 +872,7 @@ static int do_translate(const char *dtb, const char *target)
 		node = from_cronus_target(root, target);
 		if (!node) {
 			fprintf(stderr, "Failed to translate %s\n", target);
+			return 2;
 		}
 
 		path = dtm_node_path(node);
