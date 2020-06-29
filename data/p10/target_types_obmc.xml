@@ -12,6 +12,9 @@
         <attribute>
             <id>PHYS_BIN_PATH</id>
         </attribute>
+        <attribute>
+            <id>FAPI_NAME</id>
+        </attribute>
         <id>base</id>
     </targetType>
     <targetType>

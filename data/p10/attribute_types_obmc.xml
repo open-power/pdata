@@ -697,4 +697,26 @@
             </uint8_t>
         </simpleType>
     </attribute>
+
+    <attribute>
+        <description>Common name across FAPI environments
+            chip target -&gt; pu:k0:n0:s0:p00
+            DIMM target -&gt; dimm:k0:n0:s0:p00
+            chip unit target -&gt; pu.core:k0:n0:s0:p00:c0
+            cage/system target -&gt; k0
+
+            (chip type).(unit type):k(cage,always zero for us):n(node/drawer)
+            :s(slot,always zero for us):p(chip position):c(core/unit position)
+            pu  = generic processor
+        </description>
+        <id>FAPI_NAME</id>
+        <persistency>non-volatile</persistency>
+        <readable/>
+        <simpleType>
+            <string>
+                <default>unknown</default>
+                <sizeInclNull>64</sizeInclNull>
+            </string>
+        </simpleType>
+    </attribute>
 </attributes>
