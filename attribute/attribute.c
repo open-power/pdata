@@ -1046,9 +1046,9 @@ static void usage(const char *prog)
 	fprintf(stderr, "       %s dump <dtb> <infodb> [<target>]\n", prog);
 	fprintf(stderr, "       %s export <dtb> <infodb>\n", prog);
 	fprintf(stderr, "       %s import <dtb> <infodb> <attr-dump>\n", prog);
-	fprintf(stderr, "       %s read <dtb> <infodb> <target> <attriute>\n", prog);
+	fprintf(stderr, "       %s read <dtb> <infodb> <target> <attribute>\n", prog);
 	fprintf(stderr, "       %s translate <dtb> <target>\n", prog);
-	fprintf(stderr, "       %s write <dtb> <infodb> <target> <attriute> <value>\n", prog);
+	fprintf(stderr, "       %s write <dtb> <infodb> <target> <attribute> <value>\n", prog);
 	exit(1);
 }
 
