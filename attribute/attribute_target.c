@@ -369,7 +369,6 @@ struct dtm_node *from_cronus_target(struct dtm_node *root, const char *name)
 	assert(ct.chip_unit != -1);
 
 	target = dtm_find_node_by_class(proc, &ct);
-	assert(target);
 
 	return target;
 }
