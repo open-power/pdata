@@ -667,6 +667,9 @@ static bool do_import_parse_attr(struct do_import_state *state, char *line)
 
 		tok[n-1] = '\0';
 
+		if (strlen(&tok[1]) > attr->data_size) {
+			fprintf(stderr, "  %s: value truncated\n", attr_name);
+		}
 		attr_set_string_value(attr, ptr, &tok[1]);
 	} else {
 		tok = strtok_r(NULL, " ", &saveptr);
@@ -964,6 +967,10 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 				ptr += data_size;
 			}
 		} else if (attr->type == ATTR_TYPE_STRING) {
+			if (strlen(argv[i]) > attr->data_size) {
+				fprintf(stderr, "Value too long (%zu), expected (%d)\n", strlen(argv[i]), attr->data_size);
+				return 4;
+			}
 			attr_set_string_value(attr, ptr, argv[i]);
 			ptr += attr->data_size;
 		} else {
