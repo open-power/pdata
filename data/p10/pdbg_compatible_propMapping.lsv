@@ -12,7 +12,7 @@ unit-iohs-power10:ibm,power10-iohs
 unit-pau-power10:ibm,power10-pau
 unit-mc-power10:ibm,power10-mc
 unit-mi-power10:ibm,power10-mi
-chip-processor-power10:"ibm,power-proc", "ibm,power10-proc", "ibm,processor"
+chip-processor-power10:"ibm,power-proc", "ibm,power10-proc"
 unit-mcc-power10:ibm,power10-mcc
 unit-omic-power10:ibm,power10-omic
 unit-omi-power10:ibm,power10-omi
