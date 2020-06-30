@@ -272,6 +272,9 @@ sub prepareDeviceTreeHierarchy
 
         # Add FSI target manually under proc target if MRW target is chip-processor.
         addFSITarget($MRWTargetID, $finalPath) if index($mrwTargetList{$MRWTargetID}->targetType, "chip-processor") != -1;
+        # Add thread target manually under core target as per pdbg expectation for
+        # register access
+        addThreadTarget($MRWTargetID, $finalPath) if index($mrwTargetList{$MRWTargetID}->targetType, "unit-core") != -1;
     }
 
     # Prepare device tree hierarchy for non pervasive targets which need to come under proc/.../omi target hierarchy
@@ -291,6 +294,27 @@ sub addFSITarget
     $fsiTgt->targetAttrList({});
     $mrwTargetList{$fsiTgtId} = $fsiTgt;
     processTargetPath($fsiTgtId, \@hash);
+}
+
+sub addThreadTarget
+{
+    my $procTgtId = $_[0];
+    my $procPath = $_[1];
+
+    my $threadPath = $procPath."/thread-";
+    my $threadTgtId = $procTgtId."thread";
+    my $maxThreads = 4;
+    for(my $i = 0; $i < $maxThreads; $i++)
+    {
+        my $currThreadPath = $threadPath.$i;
+        my $currThreadTgtId = $threadTgtId.$i;
+        my @hash = split(/\//, substr($currThreadPath, index($currThreadPath, ':') + 1));
+        my $threadTgt = MRWTarget->new();
+        $threadTgt->targetType("unit-thread");
+        $threadTgt->targetAttrList({});
+        $mrwTargetList{$currThreadTgtId} = $threadTgt;
+        processTargetPath($currThreadTgtId, \@hash);
+    }
 }
 
 sub prepareDeviceTreeHierarchyForNonPervTgts

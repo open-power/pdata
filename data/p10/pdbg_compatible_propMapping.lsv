@@ -23,3 +23,5 @@ chip-bmc-ast2600:bmc-ast2600
 chip-vreg-generic:ibm,pmic-vreg
 unit-nx-power10:ibm,power10-nx
 unit-occ-power10:ibm,power10-occ
+# Thread target added by genDTS tool for pdbg register access
+unit-thread:"ibm,power-thread", "ibm,power10-thread"
