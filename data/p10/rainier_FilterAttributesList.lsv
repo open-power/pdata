@@ -98,10 +98,12 @@ CA:ISTEP_MODE
 CA:TYPE
 CA:PHYS_DEV_PATH
 CA:PHYS_BIN_PATH
-CA:CHIP_UNIT
 CA:FAPI_NAME
 # Below attributes required for DT hierarchy
 CA:PHYS_PATH
 CA:PARENT_PERVASIVE
 CA:CHIPLET_ID
 CA:AFFINITY_PATH
+# CHIP_UNIT attribute require to fill index and CHIP_UNIT_POS
+# attribute value but not require in device tree
+CA:CHIP_UNIT
