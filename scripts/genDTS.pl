@@ -382,6 +382,22 @@ sub processTargetPath
     {
         $lastNode->index(${$lastNode->attributeList}{"CHIP_UNIT"}->value);
     }
+
+    # Filling index for ocmb target based on omi target CHIP_UNIT attribute
+    # because ocmb is not pervasive target
+    if ($lastNode->compatible eq "chip-ocmb")
+    {
+        # To get omi target CHIP_UNIT attribute, need to get omi target id.
+        # So, using ocmb target AFFINITY_PATH to get omi target id.
+        if (exists ${$lastNode->attributeList}{"AFFINITY_PATH"})
+        {
+            my $affinityPath = ${$lastNode->attributeList}{"AFFINITY_PATH"}->value;
+            my $omiTgtId = substr( substr($affinityPath, index($affinityPath, ':') + 1),
+                                   0, index($affinityPath, 'omi-') - 4);
+            $omiTgtId =~ s/[-\/]//g;
+            $lastNode->index(${$mrwTargetList{$omiTgtId}->targetAttrList}{"CHIP_UNIT"}->value);
+        }
+    }
 }
 
 sub createNode
