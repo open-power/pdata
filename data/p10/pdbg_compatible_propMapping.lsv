@@ -16,7 +16,7 @@ chip-processor-power10:"ibm,power-proc", "ibm,power10-proc"
 unit-mcc-power10:ibm,power10-mcc
 unit-omic-power10:ibm,power10-omic
 unit-omi-power10:ibm,power10-omi
-chip-ocmb:ibm,power10-ocmb
+chip-ocmb:"ibm,power-ocmb", "ibm,power10-ocmb"
 unit-mem_port:ibm,power10-memport
 lcard-dimm-ddimm:ibm,power10-dimm
 chip-bmc-ast2600:bmc-ast2600
