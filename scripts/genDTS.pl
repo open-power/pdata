@@ -397,6 +397,12 @@ sub processTargetPath
             $omiTgtId =~ s/[-\/]//g;
             $lastNode->index(${$mrwTargetList{$omiTgtId}->targetAttrList}{"CHIP_UNIT"}->value);
         }
+
+        # Changing node name for ocmb target as per pdbg expectation.
+        # Removing "_chip" from ocmb target element value from PHYS_PATH value.
+        my $nodeName = $lastNode->nodeName;
+        $nodeName =~ s/_chip//g;
+        $lastNode->nodeName($nodeName);
     }
 }
 
