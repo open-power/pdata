@@ -272,6 +272,10 @@ sub prepareDeviceTreeHierarchy
 
         # Add FSI target manually under proc target if MRW target is chip-processor.
         addFSITarget($MRWTargetID, $finalPath) if index($mrwTargetList{$MRWTargetID}->targetType, "chip-processor") != -1;
+
+        # Add PIB target manually under proc target if MRW target is chip-processor.
+        addPIBTarget($MRWTargetID, $finalPath) if index($mrwTargetList{$MRWTargetID}->targetType, "chip-processor") != -1;
+
         # Add thread target manually under core target as per pdbg expectation for
         # register access
         addThreadTarget($MRWTargetID, $finalPath) if index($mrwTargetList{$MRWTargetID}->targetType, "unit-core") != -1;
@@ -286,14 +290,33 @@ sub addFSITarget
     my $procTgtId = $_[0];
     my $procPath = $_[1];
 
+    my $fsiIndex = substr($procPath, index($procPath, 'proc-') + 5);
+    # Pdbg did not expect index along with node name
     my $fsiPath = $procPath."/fsi";
-    my $fsiTgtId = $procTgtId."fsi";
+    my $fsiTgtId = $procTgtId."fsi".$fsiIndex;
     my @hash = split(/\//, substr($fsiPath, index($fsiPath, ':') + 1));
     my $fsiTgt = MRWTarget->new();
     $fsiTgt->targetType("unit-fsi");
     $fsiTgt->targetAttrList({});
     $mrwTargetList{$fsiTgtId} = $fsiTgt;
     processTargetPath($fsiTgtId, \@hash);
+}
+
+sub addPIBTarget
+{
+    my $procTgtId = $_[0];
+    my $procPath = $_[1];
+
+    my $pibIndex = substr($procPath, index($procPath, 'proc-') + 5);
+    # Pdbg did not expect index along with node name
+    my $pibPath = $procPath."/pib";
+    my $pibTgtId = $procTgtId."pib".$pibIndex;
+    my @hash = split(/\//, substr($pibPath, index($pibPath, ':') + 1));
+    my $pibTgt = MRWTarget->new();
+    $pibTgt->targetType("unit-pib");
+    $pibTgt->targetAttrList({});
+    $mrwTargetList{$pibTgtId} = $pibTgt;
+    processTargetPath($pibTgtId, \@hash);
 }
 
 sub addThreadTarget
@@ -403,6 +426,16 @@ sub processTargetPath
         my $nodeName = $lastNode->nodeName;
         $nodeName =~ s/_chip//g;
         $lastNode->nodeName($nodeName);
+    }
+    elsif ($lastNode->compatible eq "unit-fsi")
+    {
+        my $index = substr($TargetID, index($TargetID, "fsi") + 3);
+        $lastNode->index($index);
+    }
+    elsif ($lastNode->compatible eq "unit-pib")
+    {
+        my $index = substr($TargetID, index($TargetID, "pib") + 3);
+        $lastNode->index($index);
     }
 }
 
