@@ -144,23 +144,9 @@ debug "Step 6: Mapping FAPI Targets along with attributes into bmc plat file"
     --outXml "$tmp_dir/target_types_final.xml" \
     --tgtXMLType ekbTgt
 
-# Step 7:
-#      Merging all following generated xml files into single for
-#      creating intermediate xml file
-#            - System xml
-#            - target_types_final.xml
-#            - attribute_types_final.xml
-
-debug "Step 7: Getting intermediate xml by merging system, target and attributes types xml files"
-"$script_dir/mergeMRWFormatXml.sh" \
-    "$tmp_dir/${SYSTEM_NAME}_bmc_mrw_filtered.xml" \
-    "$tmp_dir/target_types_final.xml" \
-    "$tmp_dir/attribute_types_final.xml" \
-    > "$tmp_dir/intermediate.xml"
-
 if [ "$filetype" = "header" ] ; then
 
-# Step 8: Generating header file from intermediate xml which is contains
+# Step 7: Generating header file from intermediate xml which is contains
 #         MRW, FAPI and Non-FAPI targets/attributes.
 #
 #         The generated header file will contains meta data i.e
@@ -169,12 +155,24 @@ if [ "$filetype" = "header" ] ; then
 #          - spec: for api purpose to take care endianess
 #          - element count: attribute value element count
 
-    debug "Step 8: Generating header file"
+    debug "Step 7: Generating header file"
     "$script_dir/genAttrsHeaderFile.pl" \
         --inXML "$tmp_dir/attribute_types_final.xml" \
         --outAHFile "$outfile"
 
 elif [ "$filetype" = "infodb" ] ; then
+
+# Step 7:
+#      Merging all following generated xml files into single for
+#      creating infodb intermediate xml file
+#            - target_types_final.xml
+#            - attribute_types_final.xml
+
+    debug "Step 7: Getting infodb intermediate xml by merging target and attributes types xml files"
+    "$script_dir/mergeMRWFormatXml.sh" \
+        "$tmp_dir/target_types_final.xml" \
+        "$tmp_dir/attribute_types_final.xml" \
+        > "$tmp_dir/infodb_intermediate.xml"
 
 # Step 8: Generating attributes info database which is contains
 #         MRW, FAPI and Non-FAPI targets/attributes and generated info db
@@ -183,10 +181,24 @@ elif [ "$filetype" = "infodb" ] ; then
 
     debug "Step 8: Generating info db file"
     "$script_dir/genAttrsInfoDB.pl" \
-        --inXML "$tmp_dir/intermediate.xml" \
+        --inXML "$tmp_dir/infodb_intermediate.xml" \
         --outInfoDB "$outfile"
 
 else
+
+# Step 7:
+#      Merging all following generated xml files into single for
+#      creating intermediate xml file
+#            - System xml
+#            - target_types_final.xml
+#            - attribute_types_final.xml
+
+    debug "Step 7: Getting intermediate xml by merging system, target and attributes types xml files"
+    "$script_dir/mergeMRWFormatXml.sh" \
+        "$tmp_dir/${SYSTEM_NAME}_bmc_mrw_filtered.xml" \
+        "$tmp_dir/target_types_final.xml" \
+        "$tmp_dir/attribute_types_final.xml" \
+        > "$tmp_dir/intermediate.xml"
 
 # Step 8: Generating device tree structure (dts) file to generate DTB
 #

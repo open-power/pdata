@@ -302,41 +302,11 @@ sub getInfoDBTgtsData
 
     my %uniqueTgts;
 
-    # Preparing MRW targets with attributes index
-    foreach my $MRWTgt (keys %mrwTargetList)
-    {
-        my $targetType = $mrwTargetList{$MRWTgt}->targetType;
-        if (!exists $uniqueTgts{$targetType})
-        {
-            $uniqueTgts{$targetType} = undef;
-        }
-
-        foreach my $attr (keys %{$mrwTargetList{$MRWTgt}->targetAttrList})
-        {
-            if (!exists $uniqueTgts{$targetType}{$attr})
-            {
-                # Moving next if attribute not found in infodb attribute list
-                # because, few attributes definition (which are used for
-                # device tree hierarchy) are not defined in xml.
-                # e.g PHYS_PATH, AFFINITY_PATH, PARENT_PERVASIVE
-                next if (!exists $infoDBAttrsList{$attr});
-                $uniqueTgts{$targetType}{$attr} = $infoDBAttrsList{$attr}->index;
-            }
-        }
-    }
-
+    # Note: No need to process MRW targets, because generating info
+    # db does not required attributes value.
     # Preparing FAPI targets with attributes index
     foreach my $FAPITgt (keys %fapiTargetList)
     {
-        # Make sure all fapi targets present in added unique mrw targets list
-        # to avoid adding fapi target parents which are not required because,
-        # those parents target attributes are already added into respective
-        # child fapi targets.
-        if (!exists $uniqueTgts{$FAPITgt})
-        {
-            next;
-        }
-
         foreach my $attr (keys %{$fapiTargetList{$FAPITgt}->targetAttrList})
         {
             if (!exists $uniqueTgts{$FAPITgt}{$attr})
