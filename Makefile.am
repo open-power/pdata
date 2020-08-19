@@ -29,11 +29,6 @@ data_DATA += attributes_info.db
 CLEANFILES += attributes_info.H attributes_info.db
 endif
 
-if BUILD_DYNAMIC_DT
-data_DATA += power-target.dtb
-CLEANFILES += power-target.dts power-target.dtb
-endif
-
 libfdt_traverse_la_SOURCES = \
 	fdt/fdt_error.c \
 	fdt/fdt_error.h \
@@ -95,11 +90,35 @@ DTC_V = $(DTC_V_$(V))
 DTC_V_ = $(DTC_V_$(AM_DEFAULT_VERBOSITY))
 DTC_V_0	= @echo "  DTC     " $@;
 
-power-target.dts:
-	$(srcdir)/scripts/dt_generate.sh dts $@
-
-power-target.dtb: power-target.dts
-	$(DTC_V)$(DTC) -I dts -O dtb $< > $@
-
 %.dtb: dts/%.dts
 	$(DTC_V)$(DTC) -i$(dir $@) -I dts $< -O dtb > $@
+
+.PHONY: clean-gen_dt install-gen_dt uninstall-gen_dt
+
+clean-local: clean-gen_dt
+install-data-hook: install-gen_dt
+uninstall-hook: uninstall-gen_dt
+
+BUILT_SOURCES =
+
+if BUILD_DYNAMIC_DT
+BUILT_SOURCES += gen_dt
+gen_dtdir = $(builddir)/gen_dt
+
+clean-gen_dt:
+	rm -rf $(gen_dtdir)
+
+install-gen_dt:
+	$(install_sh) -d -m 755 $(DESTDIR)$(datadir)
+	$(install_sh) -m 644 $(gen_dtdir)/*.dtb $(DESTDIR)$(datadir)/
+
+uninstall-gen_dt:
+	rm -f $(DESTDIR)$(datadir)/*.dtb
+
+gen_dt:
+	$(MKDIR_P) $(gen_dtdir) && \
+	TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh dts $(gen_dtdir) && \
+	( for i in $(gen_dtdir)/*.dts; do \
+		$(DTC) -I dts -O dtb "$$i" > "$${i%.dts}.dtb" || exit 1; \
+	done ) || $(MAKE) $(AM_MAKEFLAGS) clean-gen_dt
+endif

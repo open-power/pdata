@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 
-# This shell script is used to generate either attribute header or DTS file
+# This shell script is used to generate either attribute header or infodb or dts file
 # for a given system.
 #
 # External repos:
@@ -11,16 +11,18 @@
 #
 # Environmental variables:
 #
-#  TARGET_PROC    - target processor (e.g. p10)
-#  SYSTEM_MRW_XML - system specific MRW xml (e.g. Raininer-2U-MRW.xml)
-#  EKB            - path to target specific EKB
+#  TARGET_PROC     - target processor (e.g. p10)
+#  SYSTEMS_MRW_XML - system specific MRW xml (e.g. "Raininer-2U-MRW.xml)
+#  EKB             - path to target specific EKB
 #
 
 set -e
 
 usage ()
 {
-    echo "Usage: $0 header|dts|infodb <filename>"
+    echo "Usage: $0 header|infodb <filename>"
+    echo "or"
+    echo "Usage: $0 dts <output_directory>"
     exit 1
 }
 
@@ -50,16 +52,19 @@ if [ "$1" != "header" -a "$1" != "dts" -a "$1" != "infodb" ] ; then
 fi
 
 filetype="$1"
-outfile="$2"
 
 # Ensure required environment variables are defined
 check_var TARGET_PROC
 check_var EKB
 if [ "$filetype" = "dts" ] ; then
-    check_var SYSTEM_MRW_XML
+    check_var SYSTEMS_MRW_XML
+
+    out_dir=$2
+else
+    outfile="$2"
+    out_dir=$(dirname "$outfile")
 fi
 
-out_dir=$(dirname "$outfile")
 tmp_dir="$out_dir/tmp_$filetype"
 rm -rf "$tmp_dir"
 mkdir -p "$tmp_dir"
@@ -166,54 +171,71 @@ else # infodb | dts
 
     else # dts
 
-        system_name=$(basename "$SYSTEM_MRW_XML" .xml)
+        ##########################################################################
+        # dts (device tree structure) will be different for each system because,
+        # device tree should maintain targets and its attributes (property) value
+        # so, the attribute value will be different for each system.
+        # Hence generating dts for each system mrw xml which is given
+        # in SYSTEMS_MRW_XML environment variable and system name picked from
+        # mrw xml filename
+        ##########################################################################
+        for system_mrw_xml in $SYSTEMS_MRW_XML ; do
 
-        # Step 5:
-        #      Processing system xml to get all required targets and attributes
-        #      for device tree hierarchy and platform specific system
-        #      targets processing
+            # Error if we can't find the file
+            if [ ! -f "$system_mrw_xml" ] ; then
+                echo "Error: Can't find MRW xml " $system_mrw_xml
+                exit 1
+            fi
 
-        debug "Step 5: Processing system xml " $(basename "$SYSTEM_MRW_XML")
-        "$script_dir/processMrw.pl" \
-            -x "$SYSTEM_MRW_XML" \
-            -b bmc \
-            -o "$tmp_dir/${system_name}_bmc_mrw.xml"
+            system_name=$(basename "$system_mrw_xml" .xml)
 
-        # Step 6:
-        #      Filtering system mrw xml which is generated from step1
-        #      by using system specific filter file
+            # Step 5:
+            #      Processing system xml to get all required targets and attributes
+            #      for device tree hierarchy and platform specific system
+            #      targets processing
 
-        debug "Step 6: Filtering processed system xml " $(basename "$SYSTEM_MRW_XML")
-        "$script_dir/filterXML.pl" \
-            --inXML "$tmp_dir/${system_name}_bmc_mrw.xml" \
-            --outXML "$tmp_dir/${system_name}_bmc_mrw_filtered.xml" \
-            --filterAttrsFile "$filter_attr" \
-            --filterTgtsFile "$filter_target" \
-            --filterType systemXML
+            debug "Step 5: Processing system xml " $(basename "$system_mrw_xml")
+            "$script_dir/processMrw.pl" \
+                -x "$system_mrw_xml" \
+                -b bmc \
+                -o "$tmp_dir/${system_name}_bmc_mrw.xml"
 
-        # Step 7:
-        #      Merging all following generated xml files into single for
-        #      creating intermediate xml file
-        #            - System xml
-        #            - target_types_final.xml
-        #            - attribute_types_final.xml
+            # Step 6:
+            #      Filtering system mrw xml which is generated from step1
+            #      by using system specific filter file
 
-        debug "Step 7: Getting intermediate xml by merging system, target and attributes types xml files"
-        "$script_dir/mergeMRWFormatXml.sh" \
-            "$tmp_dir/${system_name}_bmc_mrw_filtered.xml" \
-            "$tmp_dir/target_types_final.xml" \
-            "$tmp_dir/attribute_types_final.xml" \
-            > "$tmp_dir/${system_name}_intermediate.xml"
+            debug "Step 6: Filtering processed system xml " $(basename "$system_mrw_xml")
+            "$script_dir/filterXML.pl" \
+                --inXML "$tmp_dir/${system_name}_bmc_mrw.xml" \
+                --outXML "$tmp_dir/${system_name}_bmc_mrw_filtered.xml" \
+                --filterAttrsFile "$filter_attr" \
+                --filterTgtsFile "$filter_target" \
+                --filterType systemXML
 
-        # Step 8: Generating device tree structure (dts) file to generate DTB
-        #
-        #         The generated dts file will contain targets and its attributes as a
-        #         device tree format, so dtc compiler can use to get dtb file
+            # Step 7:
+            #      Merging all following generated xml files into single for
+            #      creating intermediate xml file
+            #            - System xml
+            #            - target_types_final.xml
+            #            - attribute_types_final.xml
 
-        debug "Step 8: Generating device tree structure file"
-        "$script_dir/genDTS.pl" \
-            --inXML "$tmp_dir/${system_name}_intermediate.xml" \
-            --pdbgMapFile "$data_dir/pdbg_compatible_propMapping.lsv" \
-            --outDTS "$outfile"
+            debug "Step 7: Getting intermediate xml by merging system, target and attributes types xml files"
+            "$script_dir/mergeMRWFormatXml.sh" \
+                "$tmp_dir/${system_name}_bmc_mrw_filtered.xml" \
+                "$tmp_dir/target_types_final.xml" \
+                "$tmp_dir/attribute_types_final.xml" \
+                > "$tmp_dir/${system_name}_intermediate.xml"
+
+            # Step 8: Generating device tree structure (dts) file to generate DTB
+            #
+            #         The generated dts file will contain targets and its attributes as a
+            #         device tree format, so dtc compiler can use to get dtb file
+            debug "Step 8: Generating device tree structure file"
+            "$script_dir/genDTS.pl" \
+                --inXML "$tmp_dir/${system_name}_intermediate.xml" \
+                --pdbgMapFile "$data_dir/pdbg_compatible_propMapping.lsv" \
+                --outDTS "$out_dir/${system_name}.dts"
+
+        done # dts loop end
     fi # infodb | dts
 fi # header | [ infodb | dts ]
