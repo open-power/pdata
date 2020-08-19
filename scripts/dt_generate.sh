@@ -124,23 +124,34 @@ debug "Step 4: Merging FAPI and Non-FAPI attributes definition..."
     > "$tmp_dir/attribute_types_final.xml"
 
 # Step 5:
+#      Mapping custom targets parent attributes into platform xml file
+#      for it child targets
+
+debug "Step 5: Mapping custom targets parent attributes into platform xml file"
+"$script_dir/mapTgtsAttrs.pl" \
+    --fromTgtXml "$data_dir/target_types_obmc.xml" \
+    --filterTgtList "$filter_target" \
+    --outXml "$tmp_dir/target_types_obmc_withItsParentAttrs.xml" \
+    --tgtXMLType customTgt
+
+# Step 6:
 #      Mapping generated ekb targets attributes into platform xml file
 
-debug "Step 5: Mapping FAPI Targets along with attributes into bmc plat file"
+debug "Step 6: Mapping FAPI Targets along with attributes into bmc plat file"
 "$script_dir/mapTgtsAttrs.pl" \
     --fromTgtXml "$tmp_dir/target_types_ekb.xml" \
-    --toTgtXml "$data_dir/target_types_obmc.xml" \
+    --toTgtXml "$tmp_dir/target_types_obmc_withItsParentAttrs.xml" \
     --outXml "$tmp_dir/target_types_final.xml" \
     --tgtXMLType ekbTgt
 
-# Step 6:
+# Step 7:
 #      Merging all following generated xml files into single for
 #      creating intermediate xml file
 #            - System xml
 #            - target_types_final.xml
 #            - attribute_types_final.xml
 
-debug "Step 6: Getting intermediate xml by merging system, target and attributes types xml files"
+debug "Step 7: Getting intermediate xml by merging system, target and attributes types xml files"
 "$script_dir/mergeMRWFormatXml.sh" \
     "$tmp_dir/${SYSTEM_NAME}_bmc_mrw_filtered.xml" \
     "$tmp_dir/target_types_final.xml" \
@@ -149,7 +160,7 @@ debug "Step 6: Getting intermediate xml by merging system, target and attributes
 
 if [ "$filetype" = "header" ] ; then
 
-# Step 7: Generating header file from intermediate xml which is contains
+# Step 8: Generating header file from intermediate xml which is contains
 #         MRW, FAPI and Non-FAPI targets/attributes.
 #
 #         The generated header file will contains meta data i.e
@@ -158,31 +169,31 @@ if [ "$filetype" = "header" ] ; then
 #          - spec: for api purpose to take care endianess
 #          - element count: attribute value element count
 
-    debug "Step 7: Generating header file"
+    debug "Step 8: Generating header file"
     "$script_dir/genAttrsHeaderFile.pl" \
         --inXML "$tmp_dir/attribute_types_final.xml" \
         --outAHFile "$outfile"
 
 elif [ "$filetype" = "infodb" ] ; then
 
-# Step 7: Generating attributes info database which is contains
+# Step 8: Generating attributes info database which is contains
 #         MRW, FAPI and Non-FAPI targets/attributes and generated info db
 #         can use for attribute tool to read|write attributes by using
 #         power system device tree.
 
-    debug "Step 7: Generating info db file"
+    debug "Step 8: Generating info db file"
     "$script_dir/genAttrsInfoDB.pl" \
         --inXML "$tmp_dir/intermediate.xml" \
         --outInfoDB "$outfile"
 
 else
 
-# Step 7: Generating device tree structure (dts) file to generate DTB
+# Step 8: Generating device tree structure (dts) file to generate DTB
 #
 #         The generated dts file will contain targets and its attributes as a
 #         device tree format, so dtc compiler can use to get dtb file
 
-    debug "Step 7: Generating device tree structure file"
+    debug "Step 8: Generating device tree structure file"
     "$script_dir/genDTS.pl" \
         --inXML "$tmp_dir/intermediate.xml" \
         --pdbgMapFile "$data_dir/pdbg_compatible_propMapping.lsv" \
