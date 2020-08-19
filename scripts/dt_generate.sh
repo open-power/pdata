@@ -160,7 +160,7 @@ if [ "$filetype" = "header" ] ; then
 
     debug "Step 7: Generating header file"
     "$script_dir/genAttrsHeaderFile.pl" \
-        --inXML "$tmp_dir/intermediate.xml" \
+        --inXML "$tmp_dir/attribute_types_final.xml" \
         --outAHFile "$outfile"
 
 elif [ "$filetype" = "infodb" ] ; then
