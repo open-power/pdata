@@ -46,10 +46,6 @@
         <attribute>
             <id>EQ_GARD</id>
         </attribute>
-        <attribute>
-            <default>FABRIC</default>
-            <id>CDM_DOMAIN</id>
-        </attribute>
         <id>chip-processor</id>
         <parent>chip</parent>
     </targetType>
@@ -174,10 +170,6 @@
         <parent>chip</parent>
     </targetType>
     <targetType>
-        <attribute>
-            <id>CDM_DOMAIN</id>
-            <default>MEM</default>
-        </attribute>
         <id>unit-mem_port</id>
         <parent>unit</parent>
     </targetType>
@@ -186,10 +178,6 @@
         <parent>lcard-dimm</parent>
     </targetType>
     <targetType>
-        <attribute>
-            <default>DIMM</default>
-            <id>CDM_DOMAIN</id>
-        </attribute>
         <id>lcard-dimm</id>
         <parent>card</parent>
     </targetType>
