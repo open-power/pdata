@@ -74,6 +74,9 @@
         <attribute>
             <id>MRU_ID</id>
         </attribute>
+        <attribute>
+            <id>CHIPLET_ID</id>
+        </attribute>
         <id>unit</id>
         <parent>base</parent>
     </targetType>
