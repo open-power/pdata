@@ -68,8 +68,8 @@ script_dir=$(dirname "$0")
 src_dir=$(dirname "$script_dir")
 data_dir="$src_dir/data/$TARGET_PROC"
 
-filter_attr="$data_dir/${SYSTEM_NAME}_FilterAttributesList.lsv"
-filter_target="$data_dir/${SYSTEM_NAME}_FilterTargetsList.lsv"
+filter_attr="$data_dir/filter_AttributesList.lsv"
+filter_target="$data_dir/filter_TargetsList.lsv"
 
 # Used to add local path into perl lib enviroment varible
 # for look up the local perl modules
