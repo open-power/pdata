@@ -551,6 +551,16 @@ sub addTargetDataIntoDTSFile
             next;
         }
 
+        # Ignoring MRW Target attributes if not found in FAPI list
+        # because, MRW Target having common attributes for all targets but,
+        # it may not be required to specific targets.
+        # Ex: Non-FAPI targets having FAPI_POS and REL_POS and those attributes
+        # are specific to fapi targets.
+        if ( !exists ${$fapiTargetList{$compatible}->targetAttrList}{$AttrID} )
+        {
+            next;
+        }
+
         if ($attrType eq "simpleType")
         {
             my $attrVal = $attributeList{$AttrID} -> AttributeData::value;
