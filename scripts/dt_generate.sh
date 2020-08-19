@@ -11,7 +11,6 @@
 #
 # Environmental variables:
 #
-#  SYSTEM_NAME    - name of the system (e.g. rainier)
 #  TARGET_PROC    - target processor (e.g. p10)
 #  SYSTEM_MRW_XML - system specific MRW xml (e.g. Raininer-2U-MRW.xml)
 #  EKB            - path to target specific EKB
@@ -57,7 +56,6 @@ outfile="$2"
 check_var TARGET_PROC
 check_var EKB
 if [ "$filetype" = "dts" ] ; then
-    check_var SYSTEM_NAME
     check_var SYSTEM_MRW_XML
 fi
 
@@ -168,6 +166,8 @@ else # infodb | dts
 
     else # dts
 
+        system_name=$(basename "$SYSTEM_MRW_XML" .xml)
+
         # Step 5:
         #      Processing system xml to get all required targets and attributes
         #      for device tree hierarchy and platform specific system
@@ -177,7 +177,7 @@ else # infodb | dts
         "$script_dir/processMrw.pl" \
             -x "$SYSTEM_MRW_XML" \
             -b bmc \
-            -o "$tmp_dir/${SYSTEM_NAME}_bmc_mrw.xml"
+            -o "$tmp_dir/${system_name}_bmc_mrw.xml"
 
         # Step 6:
         #      Filtering system mrw xml which is generated from step1
@@ -185,8 +185,8 @@ else # infodb | dts
 
         debug "Step 6: Filtering processed system xml " $(basename "$SYSTEM_MRW_XML")
         "$script_dir/filterXML.pl" \
-            --inXML "$tmp_dir/${SYSTEM_NAME}_bmc_mrw.xml" \
-            --outXML "$tmp_dir/${SYSTEM_NAME}_bmc_mrw_filtered.xml" \
+            --inXML "$tmp_dir/${system_name}_bmc_mrw.xml" \
+            --outXML "$tmp_dir/${system_name}_bmc_mrw_filtered.xml" \
             --filterAttrsFile "$filter_attr" \
             --filterTgtsFile "$filter_target" \
             --filterType systemXML
@@ -200,10 +200,10 @@ else # infodb | dts
 
         debug "Step 7: Getting intermediate xml by merging system, target and attributes types xml files"
         "$script_dir/mergeMRWFormatXml.sh" \
-            "$tmp_dir/${SYSTEM_NAME}_bmc_mrw_filtered.xml" \
+            "$tmp_dir/${system_name}_bmc_mrw_filtered.xml" \
             "$tmp_dir/target_types_final.xml" \
             "$tmp_dir/attribute_types_final.xml" \
-            > "$tmp_dir/intermediate.xml"
+            > "$tmp_dir/${system_name}_intermediate.xml"
 
         # Step 8: Generating device tree structure (dts) file to generate DTB
         #
@@ -212,7 +212,7 @@ else # infodb | dts
 
         debug "Step 8: Generating device tree structure file"
         "$script_dir/genDTS.pl" \
-            --inXML "$tmp_dir/intermediate.xml" \
+            --inXML "$tmp_dir/${system_name}_intermediate.xml" \
             --pdbgMapFile "$data_dir/pdbg_compatible_propMapping.lsv" \
             --outDTS "$outfile"
     fi # infodb | dts
