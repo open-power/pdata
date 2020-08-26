@@ -55,7 +55,6 @@ if test x"$ac_cv_lib_fdt_fdt_create" != "xyes" ; then
 fi
 
 AM_CONDITIONAL([BUILD_TOOLS], [test $FDT -eq 1])
-AM_CONDITIONAL([BUILD_DTB], [test x"$ARCH" != "xarm"])
 
 AC_ARG_ENABLE([gen_attrsinfo],
 	AS_HELP_STRING([--enable-gen_attrsinfo],

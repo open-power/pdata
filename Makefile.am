@@ -8,11 +8,6 @@ datadir = ${datarootdir}/pdata
 data_DATA =
 CLEANFILES =
 
-if BUILD_DTB
-data_DATA += p9.dtb p10.dtb
-CLEANFILES += p9.dtb p10.dtb
-endif
-
 if BUILD_TOOLS
 lib_LTLIBRARIES += libfdt-traverse.la libfdt-attr.la
 bin_PROGRAMS = attributes
@@ -85,13 +80,6 @@ attributes_info.db:
 
 libdt_api_la_SOURCES = libdt-api/dt_api.C \
                        libdt-api/dt_api.H
-
-DTC_V = $(DTC_V_$(V))
-DTC_V_ = $(DTC_V_$(AM_DEFAULT_VERBOSITY))
-DTC_V_0	= @echo "  DTC     " $@;
-
-%.dtb: dts/%.dts
-	$(DTC_V)$(DTC) -i$(dir $@) -I dts $< -O dtb > $@
 
 .PHONY: clean-gen_dt install-gen_dt uninstall-gen_dt
 
