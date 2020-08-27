@@ -73,10 +73,10 @@ attributes_LDFLAGS = -lm
 .NOTPARALLEL:
 
 attributes_info.H:
-	$(srcdir)/scripts/dt_generate.sh header $@
+	TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh header $@
 
 attributes_info.db:
-	$(srcdir)/scripts/dt_generate.sh infodb $@
+	TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh infodb $@
 
 libdt_api_la_SOURCES = libdt-api/dt_api.C \
                        libdt-api/dt_api.H
