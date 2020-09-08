@@ -262,6 +262,11 @@ sub main
         eval ("use processMrw_fsp; return 1;");
         processMrw_fsp::return_plugins();
     }
+    elsif ($targetObj->{build} eq "bmc")
+    {
+        eval ("use processMrw_bmc; return 1;");
+        processMrw_bmc::return_plugins();
+    }
 
     # Write the report
     writeReport($targetObj);
@@ -273,6 +278,10 @@ sub main
     if ($targetObj->{build} eq "fsp")
     {
         processMrw_fsp::loadFSP($targetObj);
+    }
+    elsif ($targetObj->{build} eq "bmc")
+    {
+        processMrw_bmc::loadBMC($targetObj);
     }
 
     # Once ALL processing of the targets has been completed, remove
@@ -554,6 +563,10 @@ sub postProcessTargets
             if ($targetObj->{build} eq "fsp")
             {
                 do_plugin("fsp_proc", $targetObj, $target);
+            }
+            elsif ($targetObj->{build} eq "bmc")
+            {
+                do_plugin("bmc_proc", $targetObj, $target);
             }
         }
         elsif ($type eq "OMI")

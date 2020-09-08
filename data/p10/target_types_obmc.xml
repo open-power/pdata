@@ -56,6 +56,9 @@
         <attribute>
             <id>CHIP_ID</id>
         </attribute>
+        <attribute>
+            <id>LOCATION_CODE</id>
+        </attribute>
         <id>chip</id>
         <parent>base</parent>
     </targetType>
@@ -185,10 +188,16 @@
         <parent>card</parent>
     </targetType>
     <targetType>
+        <attribute>
+            <id>LOCATION_CODE</id>
+        </attribute>
         <id>card</id>
         <parent>base</parent>
     </targetType>
     <targetType>
+        <attribute>
+            <id>LOCATION_CODE</id>
+        </attribute>
         <id>chip-bmc-ast2600</id>
         <parent>sp</parent>
     </targetType>

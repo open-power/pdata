@@ -639,4 +639,16 @@
             </string>
         </simpleType>
     </attribute>
+
+    <attribute>
+        <description>Location code of the Fru target</description>
+        <id>LOCATION_CODE</id>
+        <persistency>non-volatile</persistency>
+        <readable />
+        <simpleType>
+            <string>
+                <sizeInclNull>64</sizeInclNull>
+            </string>
+        </simpleType>
+    </attribute>
 </attributes>
