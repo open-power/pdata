@@ -60,12 +60,13 @@ if [ "$filetype" = "dts" ] ; then
     check_var SYSTEMS_MRW_XML
 
     out_dir=$2
+    tmp_dir="$(dirname "$out_dir")/tmp_$filetype"
 else
     outfile="$2"
     out_dir=$(dirname "$outfile")
+    tmp_dir="$out_dir/tmp_$filetype"
 fi
 
-tmp_dir="$out_dir/tmp_$filetype"
 rm -rf "$tmp_dir"
 mkdir -p "$tmp_dir"
 
