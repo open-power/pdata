@@ -108,5 +108,5 @@ gen_dt:
 	TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh dts $(gen_dtdir) && \
 	( for i in $(gen_dtdir)/*.dts; do \
 		$(DTC) -I dts -O dtb "$$i" > "$${i%.dts}.dtb" || exit 1; \
-	done ) || $(MAKE) $(AM_MAKEFLAGS) clean-gen_dt
+	done ) || ( $(MAKE) $(AM_MAKEFLAGS) clean-gen_dt; exit 1 )
 endif
