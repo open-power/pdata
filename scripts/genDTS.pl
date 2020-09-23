@@ -609,11 +609,10 @@ sub addTargetDataIntoDTSFile
                     foreach my $enumName (@arrayValues)
                     {
                         # Getting enum value from enum name
-                        my %tmpenumeratorList = %{$enumDef->enumeratorList};
-                        my $enumVal = $tmpenumeratorList{$enumName};
+                        my $enumVal = getEnumVal(\@{$enumDef->enumeratorList}, $enumName);
 
-                        # TODO need to remove setting value by tool if xml have values
-                        $enumVal = 0 if $enumVal eq "";
+                        # Setting first enum value as default value if not found
+                        $enumVal = getEnumVal(\@{$enumDef->enumeratorList}, "") if $enumVal eq "";
                         # Replacing enum name with value
                         $enumName = $enumVal;
                     }
