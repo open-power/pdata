@@ -1000,6 +1000,37 @@ static void bmc_usage(const char *prog)
 	fprintf(stderr, "       %s read <target> <attribute>\n", prog);
 	fprintf(stderr, "       %s write <target> <attribute> <value>\n", prog);
 	fprintf(stderr, "       %s translate <target>\n", prog);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Options:\n");
+	fprintf(stderr, "  <attr-dump>   - Use to pass attributes dump filename to modify.\n");
+	fprintf(stderr, "  <target>      - Use to pass target name and it can be either\n");
+	fprintf(stderr, "                  cronus target name (e.g for proc: p10:k0:n0:s0:p00)\n");
+	fprintf(stderr, "                  or\n");
+	fprintf(stderr, "                  device tree target path (e.g for proc: /procX).\n");
+	fprintf(stderr, "  <attribute>   - Use to pass attribute name.\n");
+	fprintf(stderr, "  <value>       - Use to pass attribute value to modify.\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Sub-Command:\n");
+	fprintf(stderr, "  export        - Used to dump all attributes value into console.\n");
+	fprintf(stderr, "                  E.g.: %s export > attributes_dump.txt\n", prog);
+	fprintf(stderr, "  import        - Used to write multiple attributes value\n");
+	fprintf(stderr, "                  E.g.: %s import attributes_dump.txt\n", prog);
+	fprintf(stderr, "  read          - Used to read single attribute value for\n");
+	fprintf(stderr, "                  given target.\n");
+	fprintf(stderr, "                  E.g.: %s read p10:k0:n0:s0:p00 ATTR_NAME\n", prog);
+	fprintf(stderr, "  write         - Used to write single attribute value for\n");
+	fprintf(stderr, "                  given target.\n");
+	fprintf(stderr, "                  E.g.: %s read p10:k0:n0:s0:p00 ATTR_NAME <value>\n", prog);
+	fprintf(stderr, "  translate     - Used to translate the given cronus target name into\n");
+	fprintf(stderr, "                  device tree target path format or vice versa.\n");
+	fprintf(stderr, "                  E.g. for cronus:\n");
+	fprintf(stderr, "                  %s translate p10:k0:n0:s0:p00\n", prog);
+	fprintf(stderr, "                  O/P : /proc0\n");
+	fprintf(stderr, "                  E.g. for device tree target path\n");
+	fprintf(stderr, "                  %s translate /proc0\n", prog);
+	fprintf(stderr, "                  O/P : p10:k0:n0:s0:p00\n");
+	fprintf(stderr, "\n");
+
 	exit(1);
 }
 
