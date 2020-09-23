@@ -73,10 +73,10 @@ attributes_LDFLAGS = -lm
 .NOTPARALLEL:
 
 attributes_info.H:
-	TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh header $@
+	DEBUG=$(V) TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh header $@
 
 attributes_info.db:
-	TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh infodb $@
+	DEBUG=$(V) TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh infodb $@
 
 libdt_api_la_SOURCES = libdt-api/dt_api.C \
                        libdt-api/dt_api.H
@@ -105,7 +105,7 @@ uninstall-gen_dt:
 
 gen_dt:
 	$(MKDIR_P) $(gen_dtdir) && \
-	TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh dts $(gen_dtdir) && \
+	DEBUG=$(V) TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh dts $(gen_dtdir) && \
 	( for i in $(gen_dtdir)/*.dts; do \
 		$(DTC) -I dts -O dtb "$$i" > "$${i%.dts}.dtb" || exit 1; \
 	done ) || ( $(MAKE) $(AM_MAKEFLAGS) clean-gen_dt; exit 1 )
