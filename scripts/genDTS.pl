@@ -812,9 +812,24 @@ sub getEnumVal
             $enumName = hex($enumName);
         }
 
+        # enumPair<enumName, enumValue>
         foreach my $enumPair ( @enumeratorList )
         {
-            return $enumPair->[1] if $enumName eq $enumPair->[0];
+            my $enumVal = "";
+            if ($enumName eq $enumPair->[0])
+            {
+                $enumVal = $enumPair->[1];
+            }
+
+            # Make sure given enum name is enum value as well. Because,
+            # In MRW, there may be chance to use enum value instead enum name
+            # for defalut value
+            if ( ($enumVal eq "") and ($enumName eq $enumPair->[1]) )
+            {
+                $enumVal = $enumPair->[1];
+            }
+
+            return $enumVal if ($enumVal ne "");
         }
     }
     else
