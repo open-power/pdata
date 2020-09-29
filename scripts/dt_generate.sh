@@ -40,6 +40,8 @@ debug ()
 {
     if [ -n "${DEBUG}" ] ; then
         echo $@
+    else
+        exec 1>/dev/null
     fi
 }
 
