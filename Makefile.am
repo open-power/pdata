@@ -69,14 +69,20 @@ attributes_SOURCES = \
 attributes_LDADD = libdtm.la
 attributes_LDFLAGS = -lm
 
+AUTO_GEN_V = $(AUTO_GEN_V_$(V))
+AUTO_GEN_V_ = $(AUTO_GEN_V_$(AM_DEFAULT_VERBOSITY))
+AUTO_GEN_V_0 = @echo "  GEN     " $@;
+
 # attribute_info.H and attribute_info.db cannot be built in parallel
 .NOTPARALLEL:
 
 attributes_info.H:
-	DEBUG=$(V) TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh header $@
+	$(AUTO_GEN_V)DEBUG=$(V) TARGET_PROC=$(CHIP) \
+		$(srcdir)/scripts/dt_generate.sh header $@
 
 attributes_info.db:
-	DEBUG=$(V) TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh infodb $@
+	$(AUTO_GEN_V)DEBUG=$(V) TARGET_PROC=$(CHIP) \
+		$(srcdir)/scripts/dt_generate.sh infodb $@
 
 libdt_api_la_SOURCES = libdt-api/dt_api.C \
                        libdt-api/dt_api.H
@@ -104,7 +110,7 @@ uninstall-gen_dt:
 	rm -f $(DESTDIR)$(datadir)/*.dtb
 
 gen_dt:
-	$(MKDIR_P) $(gen_dtdir) && \
+	$(AUTO_GEN_V)$(MKDIR_P) $(gen_dtdir) && \
 	DEBUG=$(V) TARGET_PROC=$(CHIP) $(srcdir)/scripts/dt_generate.sh dts $(gen_dtdir) && \
 	( for i in $(gen_dtdir)/*.dts; do \
 		$(DTC) -I dts -O dtb "$$i" > "$${i%.dts}.dtb" || exit 1; \
