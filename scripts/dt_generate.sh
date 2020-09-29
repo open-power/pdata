@@ -38,7 +38,7 @@ check_var ()
 
 debug ()
 {
-    if [ -n "${DEBUG}" ] ; then
+    if [ -n "${DEBUG}" -a "${DEBUG}" != 0 ] ; then
         echo $@
     else
         exec 1>/dev/null
