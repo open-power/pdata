@@ -403,20 +403,65 @@ sub prepareComplexTypeAttrTypeInfo
         $structAttrName .= ucfirst ( lc($word) );
     }
     print {$AIHeaderFH} "\tstruct $structAttrName\n\t{\n";
-   
+
+    # Split comples non-bitfields and bitfields to support endianess
+    # Note:
+    # 1. Considering same bit fields order which are defined in attribute_types xml
+    #    as BigEndian and reverse of bit fields order as LittleEndian.
+    # 2. Non-bitfields will add first fields as member of struct in both little endian
+    #    and big endian format
+    my @non_bitfields;
+    my @bitfields;
     foreach my $complexfield (@listOfComplexObj)
     {
-        my $fieldType = $complexfield->type;
-        my $fieldName = $complexfield->name;
-        my $fieldBits = "";
-        if ( $complexfield->bits ne "" )
+        if ($complexfield->bits eq "")
         {
-            $fieldBits = " : ".$complexfield->bits;
+            push(@non_bitfields, $complexfield);
         }
+        else
+        {
+            push(@bitfields, $complexfield);
+        }
+    }
+
+    # Add complex fields in little endian order
+    print {$AIHeaderFH} "#if __BYTE_ORDER == __LITTLE_ENDIAN\n";
+    # First add non-bitfields in same order which are defined in attribute_types xml
+    foreach my $non_bitfield (@non_bitfields)
+    {
+        my $fieldType = $non_bitfield->type;
+        my $fieldName = $non_bitfield->name;
+        print {$AIHeaderFH} "\t\t$fieldType $fieldName;\n\n";
+    }
+    # Second add bitfields in reverse order which are defined in attribute_types xml
+    foreach my $bitfield (reverse @bitfields)
+    {
+        my $fieldType = $bitfield->type;
+        my $fieldName = $bitfield->name;
+        my $fieldBits = " : ".$bitfield->bits;
         print {$AIHeaderFH} "\t\t$fieldType $fieldName$fieldBits;\n\n";
     }
-   
+
+    # Add complex fields in big endian order
+    print {$AIHeaderFH} "#else\n";
+    # First add non-bitfields in same order which are defined in attribute_types xml
+    foreach my $non_bitfield (@non_bitfields)
+    {
+        my $fieldType = $non_bitfield->type;
+        my $fieldName = $non_bitfield->name;
+        print {$AIHeaderFH} "\t\t$fieldType $fieldName;\n\n";
+    }
+    # Second add bitfields in same order which are defined in attribute_types xml
+    foreach my $bitfield (@bitfields)
+    {
+        my $fieldType = $bitfield->type;
+        my $fieldName = $bitfield->name;
+        my $fieldBits = " : ".$bitfield->bits;
+        print {$AIHeaderFH} "\t\t$fieldType $fieldName$fieldBits;\n\n";
+    }
+    print {$AIHeaderFH} "#endif\n";
     print {$AIHeaderFH} "\t} PACKED;\n\n";
+
     my $dimData = "";
     $dimData = "[".$arraySize."]" if $arraySize ne "";
 
