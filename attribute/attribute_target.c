@@ -54,7 +54,7 @@ struct {
 	{ "TARGET_TYPE_NMMU", "nmmu", "nmmu" },
 	{ "TARGET_TYPE_OBUS", "obus", "obus" },
 	{ "TARGET_TYPE_OBUS_BRICK", "obus_brick", "obus_brick" },
-	{ "TARGET_TYPE_OCMB_CHIP", "ocmb_chip", "obmc_chip" },
+	{ "TARGET_TYPE_OCMB_CHIP", "ocmb", "ocmb" },
 	{ "TARGET_TYPE_OMI", "omi", "omi" },
 	{ "TARGET_TYPE_OMIC", "omic", "omic" },
         { "TARGET_TYPE_PAU", "pau", "pau" },
