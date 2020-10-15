@@ -78,6 +78,8 @@ my %MAX_INST_PER_PARENT =
     OCMB_CHIP => 1, # Number of OCMB_CHIPs per OMI
     PMIC      => 4, # Number of PMICs per DIMM/logical OCMB.  Adjusted for future
                     # systems.  Meaning, the current system may not have this many.
+    GENERIC_I2C_DEVICE  => 4, # Number of GENERIC_I2C_DEVICEs per DIMM/logical OCMB.
+                              # Max of 4, but not all DIMMs will have these.
     MEM_PORT  => 1, # Number of MEM_PORTs per OCMB
     DIMM      => 1, # Number of DIMMs per MEM_PORT
 
@@ -135,6 +137,11 @@ my %MAX_INST_PER_PROC =
     PMIC       => getMaxInstPerParent("MC") * getMaxInstPerParent("MI") *
                   getMaxInstPerParent("MCC") * getMaxInstPerParent("OMI") *
                   getMaxInstPerParent("OCMB_CHIP") * getMaxInstPerParent("PMIC"),
+
+    GENERIC_I2C_DEVICE =>
+                  getMaxInstPerParent("MC") * getMaxInstPerParent("MI") *
+                  getMaxInstPerParent("MCC") * getMaxInstPerParent("OMI") *
+                  getMaxInstPerParent("OCMB_CHIP") * getMaxInstPerParent("GENERIC_I2C_DEVICE"),
 
     OMIC       => getMaxInstPerParent("MC") * getMaxInstPerParent("OMIC"),
 
@@ -232,6 +239,7 @@ sub main
         printHostbootTargetHierarchy($targetObj, $xmlFile);
         return 0;
     }
+
     # Print the full target hierarchy, ignore all other options
     elsif ($targetObj->{print_full_hierarchy} == 1)
     {
@@ -506,9 +514,10 @@ sub processTargets
                 processProcessorAndChildren($targetObj, $target);
             }
             elsif ( ($type eq "DIMM")   &&
-                    ($targetObj->getTargetType($target) eq "lcard-dimm-ddimm") )
+                    (($targetObj->getTargetType($target) eq "lcard-dimm-ddimm") ||
+                     ($targetObj->getTargetType($target) eq "lcard-dimm-ddimm4u")) )
             {
-                # The P10 children that get processed are PMIC, OCMB, MEM_PORT
+                # The P10 children that get processed are PMIC, OCMB, MEM_PORT, GENERIC_I2C_DEVICE
                 processDdimmAndChildren($targetObj, $target);
             }
             elsif ($type eq "BMC")
@@ -1115,7 +1124,8 @@ sub processProcessorAndChildren
 } # end sub processProcessorAndChildren
 
 #--------------------------------------------------
-# @brief Process targets of type DDIMM and it's children PMIC and OCMB
+# @brief Process targets of type DDIMM and it's children,
+#        like PMIC, GENERIC_I2C_DEVICE, and OCMB
 #
 # @pre SYS, NODE and PROC targets need to be processed beforehand
 #
@@ -1222,9 +1232,8 @@ sub processDdimmAndChildren
     } # end if ($conn ne "")
 
     # The DIMM position is not based on the DIMM's parent but on the OMI that it is associated with
-    my $dimmPosPerNode = $omiId +
-                        ( (getMaxInstPerProc("DIMM") / $targetObj->{NUMBER_PROCS_PER_SOCKET})
-                          * $procPosRelativeToNode );
+    my $dimmPosPerNode =   $omiId
+                         + (getMaxInstPerProc("DIMM") * $procPosRelativeToNode);
 
     # Get some useful info from the DDIMM parent's SYS and NODE and targets
     my $sysParent = $targetObj->findParentByType($target, "SYS");
@@ -1279,7 +1288,8 @@ sub processDdimmAndChildren
     # Mark this target as processed
     markTargetAsProcessed($targetObj, $target);
 
-    ## Process children PMIC and OCMB. Children may differ for different systems.
+    ## Process children PMIC, OCMB, and Generic I2C Devices (aka ADCs and GPIO Expanders).
+    # Children may differ for different systems.
     # Sanity check flag, to make sure that this code is still valid.
     my $foundPmic = false;
     my $foundOcmb = false;
@@ -1290,6 +1300,7 @@ sub processDdimmAndChildren
     {
         my $childTargetType = $targetObj->getTargetType($child);
         my $childType = $targetObj->getType($child);
+
         if ($childTargetType eq "chip-vreg-generic")
         {
             # Update TYPE to PMIC, because it is set to N/A and that won't fly
@@ -1301,6 +1312,13 @@ sub processDdimmAndChildren
         {
             processOcmbChipAndChildren($targetObj, $child, $dimmId, $dimmPosPerNode);
             $foundOcmb = true;
+        }
+        elsif (($childTargetType eq "chip-PCA9554") ||
+               ($childTargetType eq "chip-adc"))
+        {
+            # Update TYPE to GENERIC_I2C_DEVICE for all targets
+            $childType = $targetObj->setAttribute($child, "TYPE", "GENERIC_I2C_DEVICE");
+            processGenericI2cDevice($targetObj, $child, $dimmId);
         }
     }
 
@@ -1319,6 +1337,9 @@ sub processDdimmAndChildren
             "child for this DDIMM ($target). Did the MRW structure " .
             "change?  If so update this script to reflect changes.  Error"
     }
+
+    # NOTE: no check for GENERIC_I2C_DEVICES because some dimms/systems won't have them
+
 } # end sub processDdimmAndChildren
 
 #--------------------------------------------------
@@ -1427,6 +1448,147 @@ sub processPmic
     # Mark this target as processed
     markTargetAsProcessed($targetObj, $target);
 } # end sub processPmic
+
+#--------------------------------------------------
+# @brief Process targets of type GENERIC_I2C_DEVICE
+#
+# @pre DIMM targets need to be processed beforehand
+#
+# @param[in] $targetObj - The global target object blob
+# @param[in] $target    - The GENERIC_I2C_DEVICVE target
+# @param[in] $dimmId    - The DIMM's ID, used to calculate the GENERIC_I2C_DEVICE's ID
+#--------------------------------------------------
+sub processGenericI2cDevice
+{
+    my $targetObj = shift;
+    my $target    = shift;
+    my $dimmId    = shift;
+
+    # Some sanity checks.  Make sure we are processing the correct target type
+    # and make sure the target's parent has been processed.
+    my $targetType = targetTypeSanityCheck($targetObj, $target, "GENERIC_I2C_DEVICE");
+    validateParentHasBeenProcessed($targetObj, $target);
+
+    # Get some useful data from the device's parent's SYS, NODE and DDIMM targets
+    my $sysParent = $targetObj->findParentByType($target, "SYS");
+    my $sysParentPos = $targetObj->getAttribute($sysParent, "ORDINAL_ID");
+    my $nodeParent = $targetObj->findParentByType($target, "NODE");
+    my $nodeParentPos = $targetObj->getAttribute($nodeParent, "ORDINAL_ID");
+    my $nodeParentPhysical = $targetObj->getAttribute($nodeParent, "PHYS_PATH");
+    my $ddimmParent = $targetObj->findParentByType($target, "DIMM");
+    my $ddimmParentPos = $targetObj->getAttribute($ddimmParent, "ORDINAL_ID");
+    my $ddimmParentAffinity = $targetObj->getAttribute($ddimmParent, "AFFINITY_PATH");
+
+    ## Get the instance name and set the Instance Position (aka relative position)
+    # Currently supported instance names: adc0, adc1, PCA9554A, PCA9554B
+    # Although different, the ADCs and the GPIO Expanders (PCA9554A/B) are grouped
+    # together under GENERIC_I2C_DEVICES.
+    # Their Instance Position is in the order as they're listed above
+    # Also set I2C_DEV_TYPE attribute based on instance position/name
+    my $instancePos = -1;
+    my $instanceName = $targetObj->getInstanceName($target);
+    my $i2cDevType = "ADS7138_ADC";
+
+    if ($instanceName eq "adc0")
+    {
+        $instancePos = 0;
+    }
+    elsif ($instanceName eq "adc1")
+    {
+        $instancePos = 1;
+    }
+    elsif ($instanceName eq "PCA9554A")
+    {
+        $instancePos = 2;
+        $i2cDevType = "PCA9554A_GPIO_EXPANDER";
+    }
+    elsif ($instanceName eq "PCA9554B")
+    {
+        $instancePos = 3;
+        $i2cDevType = "PCA9554A_GPIO_EXPANDER";
+    }
+    else
+    {
+        select()->flush(); # flush buffer before spewing out error message
+        die "\nprocessGenericI2cDevice: ERROR: The GENERIC_I2C_DEVICE's instance name " .
+            "($instanceName) is not supported. Error";
+    }
+
+    $targetObj->setAttribute($target, "I2C_DEV_TYPE", $i2cDevType);
+
+    # Cache the device's maximum instance per parent (DDIMM) for quick reference
+    my $maxDevicePerDdimm = getMaxInstPerParent("GENERIC_I2C_DEVICE");
+
+    # Do a quick sanity check.  Make sure the GENERIC_I2C_DEVICE instance position is less
+    # than what is expected it to be.
+    if ($instancePos >= $maxDevicePerDdimm )
+    {
+        select()->flush(); # flush buffer before spewing out error message
+        die "\nprocessGenericI2cDevice: ERROR: The GENERIC_I2C_DEVICE's instance position " .
+            "($instancePos), extracted from instance name " .
+            "\"$instanceName\", exceeds or is equal to the maximum GENERIC_I2C_DEVICE " .
+            "per DIMM (" . $maxDevicePerDdimm . "). Error" ;
+    }
+
+    ## Generic I2C Device ordering
+    # Ex. for adc0, dimm19 = generici2cdevice76   ((19 * 4) + 0)
+    # Ex. for adc1, dimm19 = generici2cdevice77   ((19 * 4) + 1)
+    # Ex. for PCA9554A, dimm19 = generici2cdevice78   ((19 * 4) + 2)
+    # Ex. for PCA9554B, dimm19 = generici2cdevice79   ((19 * 4) + 3)
+
+    ## Calculate the 'Generic I2C Device's Position Per System (SYS)'
+    # To calculate the Generic I2C Device's ordering, take its parent DDIMM position,
+    # multiply it by the maximum GENERIC_I2C_DEVICEs per DDIMM, then add the device's instance:
+    my $posPerSystem = ($ddimmParentPos * $maxDevicePerDdimm) + $instancePos;
+
+    ## Calculate the 'Generic I2C Device's Position per NODE'
+    # The generic i2c device's 'Position per NODE' is based on the maximum of generic
+    # i2c devices per node which is the product of the maximum number of DIMM's per PROC
+    # times the maximum number of PROC's per NODE times the maxium generic i2c devices per DDIMM.
+    # Modify that number with the system wide number to get generic i2c device position per NODE.
+    my $totalMaxDevicesPerNode = getMaxInstPerProc("DIMM") * getMaxInstPerParent("PROC") *
+                                 $maxDevicePerDdimm;
+    my $posPerNode = $posPerSystem % $totalMaxDevicesPerNode;
+
+    # The Device's ID is just a multiple of the DIMM's ID plus the Device's position
+    # relative to the DIMM.
+    my $deviceId = ($dimmId * $maxDevicePerDdimm) + $instancePos;
+
+    # Get the FAPI_NAME by using the data gathered above
+    my $fapiName = $targetObj->getFapiName($targetType, $nodeParentPos, $posPerSystem);
+
+    # Take advantage of previous work done on the DDIMMs and NODEs.  Use these
+    # parent affinity/physical path for our self and append "generic_i2c_device" to the end.
+    # NOTE: need the underscores for these lines as they get processed into GENERIC_I2C_DEVICE
+    my $deviceAffinity = $ddimmParentAffinity;
+    $deviceAffinity    =~ s/\/dimm-\d+//;     # Drop the dimm info, not needed
+    $deviceAffinity    =~ s/\/mem_port-\d+//; # Drop the mem_port info, not needed
+    $deviceAffinity    = $deviceAffinity . "/generic_i2c_device-" . $instancePos;
+    my $devicePhysical = $nodeParentPhysical . "/generic_i2c_device-" . $deviceId;
+
+    # Now that we collected all the data we need, set some target attributes
+    $targetObj->setHuid($target, $sysParentPos, $nodeParentPos, $posPerNode);
+    $targetObj->setAttribute($target, "POSITION",      $deviceId);
+    $targetObj->setAttribute($target, "ORDINAL_ID",    $posPerSystem);
+    $targetObj->setAttribute($target, "FAPI_POS",      $posPerSystem);
+    $targetObj->setAttribute($target, "FAPI_NAME",     $fapiName);
+    $targetObj->setAttribute($target, "REL_POS",       $instancePos);
+    $targetObj->setAttribute($target, "AFFINITY_PATH", $deviceAffinity);
+    $targetObj->setAttribute($target, "PHYS_PATH",     $devicePhysical);
+    # Until CLASS is removed from MRW, rewrite it here
+    $targetObj->setAttribute($target, "CLASS",     "ASIC");
+
+    # Set the FAPI_I2C_CONTROL_INFO attribute
+    setFapi2AttributeForDimmI2cDevices($targetObj, $target, "GENERIC_I2C_DEVICE");
+
+    # Save this target for retrieval later when printing the xml (sub printXML)
+    $targetObj->{targeting}{SYS}[$sysParentPos]{NODES}[$nodeParentPos]
+                {GENERIC_I2C_DEVICE}[$posPerSystem]{KEY} = $target;
+
+    # Mark this target as processed
+    markTargetAsProcessed($targetObj, $target);
+} # end sub processGenericI2cDevice
+
 
 #--------------------------------------------------
 # @brief Process targets of type OCMB_CHIP and it's child MEM_PORT
@@ -1735,16 +1897,12 @@ sub processTpm
     # Take advantage of previous work done on the NODEs.  Use the parent NODE's
     # physical path for our self and append tpm to the end.
     my $tpmPhysical = $nodeParentPhysical . "/tpm-" . $tpmPosPerSystem;
-    ### @fixme-RTC:246066: Secureboot - HBI SPI TPM support
-    ### properly set AFFINITY_PATH
-    my $tpmAffinity = $tpmPhysical;
 
     # Now that we collected all the data we need, set some target attributes
     $targetObj->setHuid($target, $sysParentPos, $nodeParentPos, $tpmPosPerSystem);
     $targetObj->setAttribute($target, "ORDINAL_ID",    $tpmPosPerSystem);
     $targetObj->setAttribute($target, "FAPI_POS",      $tpmPosPerSystem);
     $targetObj->setAttribute($target, "FAPI_NAME",     $tpmFapiName);
-    $targetObj->setAttribute($target, "AFFINITY_PATH", $tpmAffinity);
     $targetObj->setAttribute($target, "PHYS_PATH",     $tpmPhysical);
 
     # Save this target for retrieval later when printing the xml (sub printXML)
@@ -1999,7 +2157,8 @@ sub setCommonAttrForChiplet
         my $value = sprintf("0x%0.2X", $chiplet_id);
         $targetObj->setAttribute($target, "CHIPLET_ID", $value);
     }
-    elsif ($pervasive_parent ne "")
+
+    if ($pervasive_parent ne "")
     {
         # Special case: FC does not have a PARENT_PERVASIVE
         if ($targetType ne "FC")
@@ -2439,6 +2598,67 @@ sub setFapi2AttributeForPmic
 } # end setFapi2AttributeForPmic
 
 #--------------------------------------------------
+# @brief Set the FAPI_I2C_CONTROL_INFO attribute for the given Generic I2C Device
+#
+# @detail The majority of the FAPI_I2C_CONTROL_INFO data is equivalent to the
+#         the DDIMM parent EEPROM_VPD_PRIMARY_INFO attribute, so copy the
+#         appropriate fields.
+#
+# @param[in] $targetObj - The global target object blob
+# @param[in] $target    - The Pmic or Generic I2C Device target
+# @param[in] $type      - The type of the PMIC or Generic I2C Device
+#--------------------------------------------------
+sub setFapi2AttributeForDimmI2cDevices
+{
+    my $targetObj = shift;
+    my $target    = shift;
+    my $type      = shift;
+
+    # Sanity check.  Make sure we are processing the correct target type.
+    targetTypeSanityCheck($targetObj, $target, $type);
+
+    # Get the DDIMM parent
+    my $ddimmParent = $targetObj->getTargetParent($target);
+
+    # Copy some of the parent DDIMM's EEPROM data over to the FAPI2 attribute
+    my $eepromName = "EEPROM_VPD_PRIMARY_INFO";
+    my $fapiName = "FAPI_I2C_CONTROL_INFO";
+    $targetObj->copySrcAttributeFieldToDestAttributeField($ddimmParent, $target,
+                $eepromName, $fapiName, "i2cMasterPath");
+    $targetObj->copySrcAttributeFieldToDestAttributeField($ddimmParent, $target,
+                $eepromName, $fapiName, "engine");
+    $targetObj->copySrcAttributeFieldToDestAttributeField($ddimmParent, $target,
+                $eepromName, $fapiName, "port");
+
+    # Retrieve the I2C Address from the 'unit-i2c-slave' child target of $target.
+    # Set the field 'devAddr' for attribute FAPI2_I2C_CONTROL_INFO with value.
+    my $devAddr = "";
+    foreach my $i2cSlave (@{ $targetObj->getTargetChildren($target) })
+    {
+        my $type = $targetObj->getTargetType($i2cSlave);
+        if ($type eq "unit-i2c-slave")
+        {
+            $devAddr = $targetObj->getAttribute($i2cSlave, "I2C_ADDRESS");
+            last;
+        }
+    }
+
+    # If no value for the field devAddr, then there should be a warning.
+    # The default value of 0xFF can be used, so that's why this is not a full error.
+    if ($devAddr eq "")
+    {
+        select()->flush(); # flush buffer before spewing out error message
+        $devAddr = 0xFF;
+        warn "\nsetFapi2AttributeForDimmI2cDevices: ERROR: No child target " .
+            "\"unit-i2c-slave\" found for target ($target), therefore value " .
+            "for field \"devAddr\" for attribute FAPI2_I2C_CONTROL_INFO " .
+            "will use default value of $devAddr\n";
+    }
+
+    $targetObj->setAttributeField($target, $fapiName, "devAddr", $devAddr);
+} # end setFapi2AttributeForDimmI2cDevices
+
+#--------------------------------------------------
 # @brief Validate that PROCs are being processed in Topology ID order.
 #
 # @details Having the PROCs being processed by Topology ID order, facilitates the
@@ -2630,8 +2850,10 @@ sub postProcessProcessor
     my $staticAbsLocationCode = getStaticAbsLocationCode($targetObj,$target);
     $targetObj->setAttribute($target, "STATIC_ABS_LOCATION_CODE",$staticAbsLocationCode);
 
+    my $systemName = $targetObj->getSystemName();
+
     ## Copy PCIE attributes from socket
-    ## Copy PBAX attributes from socket
+    ## Copy PBAX attributes from socket for Denali only
     foreach my $attr (sort (keys
            %{ $targetObj->getTarget($socket_target)->{TARGET}->{attribute} }))
     {
@@ -2639,25 +2861,27 @@ sub postProcessProcessor
         {
             $targetObj->copyAttribute($socket_target,$target,$attr);
         }
-        elsif ($attr =~/PBAX_BRDCST_ID_VECTOR/)
-        {
-            $targetObj->copyAttribute($socket_target,$target,$attr);
-        }
-        elsif ($attr =~/PBAX_CHIPID/)
-        {
-            $targetObj->copyAttribute($socket_target,$target,$attr);
-        }
-        elsif ($attr =~/PBAX_GROUPID/)
-        {
-            $targetObj->copyAttribute($socket_target,$target,$attr);
-        }
-        elsif ($attr =~/PM_PBAX_NODEID/)
-        {
-            $targetObj->copyAttribute($socket_target,$target,$attr);
-        }
         elsif ($attr =~/NO_APSS_PROC_POWER_VCS_VIO_WATTS/)
         {
             $targetObj->copyAttribute($socket_target,$target,$attr);
+        }
+        # TODO RTC 260629: Remove this leg of logic when all MRWs
+        # have switched to entirely consume these attributes from processor
+        # globals or instances, and update the PBAX comment above.
+        elsif ($systemName =~ m/DENALI/)
+        {
+            if ($attr =~/PBAX_BRDCST_ID_VECTOR/)
+            {
+                $targetObj->copyAttribute($socket_target,$target,$attr);
+            }
+            elsif ($attr =~/PBAX_CHIPID/)
+            {
+                $targetObj->copyAttribute($socket_target,$target,$attr);
+            }
+            elsif ($attr =~/PBAX_GROUPID/)
+            {
+                $targetObj->copyAttribute($socket_target,$target,$attr);
+            }
         }
     }
 
@@ -2888,8 +3112,9 @@ sub postProcessOmi
     ## The offset for each MC is 8GB
 
     ## Define some useful constants
+    my $OMI_PER_PROC = getMaxInstPerProc("OMI");
     # The number of OMI targets to an MC target
-    my $OMI_PER_MC = (getMaxInstPerProc("OMI") / getMaxInstPerProc("MC"));
+    my $OMI_PER_MC = ($OMI_PER_PROC / getMaxInstPerProc("MC"));
     # The number of OMI targets to it's parent
     my $OMI_PER_PARENT = getMaxInstPerParent("OMI");
     # The size of a gigabyte in hex form
@@ -2903,14 +3128,14 @@ sub postProcessOmi
     use constant OMI_BASE_BAR_ADDRESS_OFFSET => 0x30400000000;
 
     # Get the OMI position using the value found in attribute FAPI_POS
-    my $omiFapiPos = $targetObj->getAttribute($target,"FAPI_POS");
+    my $omiProcRelativePos = $targetObj->getAttribute($target,"FAPI_POS") % $OMI_PER_PROC;
 
     # This formula is a verbatim copy of the same formula as found in
     # hostboot/src/usr/mmio/mmio.C::mmioSetup(), except without the magic numbers
     use integer;
     my $value = Math::BigInt->new(
-                (($omiFapiPos / $OMI_PER_PARENT) * GB_PER_MMC * GB_SIZE) +
-                (($omiFapiPos % $OMI_PER_PARENT) * GB_PER_OMI * GB_SIZE) );
+                (($omiProcRelativePos / $OMI_PER_PARENT) * GB_PER_MMC * GB_SIZE) +
+                (($omiProcRelativePos % $OMI_PER_PARENT) * GB_PER_OMI * GB_SIZE) );
     $value = OMI_BASE_BAR_ADDRESS_OFFSET + $value;
 
     # Put the value in hex form before setting the OMI attribute
@@ -2919,7 +3144,7 @@ sub postProcessOmi
     $targetObj->setAttribute($target, "OMI_INBAND_BAR_BASE_ADDR_OFFSET", $value);
 
     # Set the parent MC BAR value to the value of first OMI within the OMI group per MC
-    if (($omiFapiPos % $OMI_PER_MC) eq 0)
+    if (($omiProcRelativePos % $OMI_PER_MC) eq 0)
     {
         my $parentMC = $targetObj->findParentByType($target, "MC");
         $targetObj->setAttribute($parentMC, "OMI_INBAND_BAR_BASE_ADDR_OFFSET", $value);
@@ -3052,7 +3277,7 @@ sub postProcessUcd
 } # end sub postProcessUcd
 
 #  @brief Post-processes a TPM target to use SPI_TPM_INFO. Only the SPI controller field needs to be
-#  updated
+#  updated. Also set affinity path for TPM target.
 #
 #  @param[in] $targetObj Object model reference
 #  @param[in] $target    Handle of the target to process
@@ -3084,8 +3309,15 @@ sub postProcessTpm
             # Get its physical path
             my $spiParentTargetPath = $targetObj->getAttribute($spiParentTarget,"PHYS_PATH");
 
-            # Set the TPM's SPI controller's path accordingly
+            # Set the TPM's SPI controller's path in the SPI_TPM_INFO attribute
+            # Note that by using SPI_TPM_INFO, the engine number is inheritted
             $targetObj->setAttributeField($target, "SPI_TPM_INFO", "spiMasterPath", $spiParentTargetPath);
+
+            # Set AFFINITY_PATH
+            my $spiParentAffinityPath = $targetObj->getAttribute($spiParentTarget,"AFFINITY_PATH");
+            my $tpmPosPerSystem = $targetObj->getTargetPosition($target);
+            my $tpmAffinity = $spiParentAffinityPath . "/tpm-" . $tpmPosPerSystem;
+            $targetObj->setAttribute($target, "AFFINITY_PATH", $tpmAffinity);
         }
     }
 } # end sub postProcessTpm
@@ -3157,6 +3389,9 @@ sub processSmpX
     my $target        = shift;
     my $parentTarget  = shift;
 
+    # Retrieve option '-c' caller supplied
+    my $systemConfig = $targetObj->{system_config};
+
     my $busConnection = $targetObj->getFirstConnectionBus($target);
 
     # Only proceed if a bus connection exists ...
@@ -3179,7 +3414,7 @@ sub processSmpX
         {
             if (0 == $targetObj->{stealth_mode})
             {
-                #print STDOUT "No value found for CONFIG_APPLY, default to using default value ($defaultConfig)\n";
+                print STDOUT "No value found for CONFIG_APPLY, default to using default value ($defaultConfig)\n";
             }
             $config = $defaultConfig;
         }
@@ -3193,7 +3428,6 @@ sub processSmpX
         # For example, in wrap config, CONFIG_APPLY is expected to have "w"
         # If "w" is not there, then we skip the connection and mark peers
         # as NULL
-        my $systemConfig = $targetObj->{system_config};
         if (($systemConfig eq $wrapConfig && $config =~ /$wrapConfig/) ||
            ($systemConfig ne $wrapConfig && $config =~ /$defaultConfig/))
         {
@@ -3212,7 +3446,6 @@ sub processSmpX
     } # end if ($busConnection ne "")
 } # end sub processSmpX
 
-
 #--------------------------------------------------
 # @brief Set up the SMPA bus for the IOHS target
 #
@@ -3222,68 +3455,93 @@ sub processSmpX
 #--------------------------------------------------
 sub processSmpA
 {
-    my $targetObj       = shift;
-    my $target          = shift;
-    my $parentTarget    = shift;
+    my $targetObj     = shift;
+    my $target        = shift;
+    my $parentTarget  = shift;
 
-    my $busConnection = $targetObj->getFirstConnectionBus($target);
+    my $busConnection = "";
+    # Retrieve option '-c' caller supplied
+    my $systemConfig = $targetObj->{system_config};
 
+    my $numBusConnections = $targetObj->getNumConnections($target);
     # Only proceed if a bus connection exists ...
-    if ($busConnection ne "")
+    if ($numBusConnections != 0)
     {
         ## Ascertain the configuration
         # Create some useful variables to help w/sorting out the configuration
         my $applyConfiguration = 0;
-        my $twoNode = "2";
+        my $twoNode   = "2";
         my $threeNode = "3";
-        my $fourNode = "4";
-        my $config = "";
+        my $fourNode  = "4";
+        my $config    = "";
 
-        if ($targetObj->isBusAttributeDefined($target, 0, "CONFIG_APPLY"))
+        # Iterate thru the bus connections, searching for the bus connection
+        # that is associated with the system configuration, option '-c'
+        for ( my $busIndex = 0; $busIndex < $numBusConnections; $busIndex++ )
         {
-            $config = $targetObj->getBusAttribute($target, 0, "CONFIG_APPLY");
-        }
-
-        # The CONFIG_APPLY bus attribute carries a comma separated values
-        # for each A-bus connection. For eg.,
-        # "2,3,4" - This connection is applicable in 2,3 and 4 node config
-        # "w" - This connection is applicable only in wrap config
-        # "2" - This connection is applicable only in 2 node config
-        # "4" - This connection is applicable only in 4 node config
-        # The below logic looks for these values (w, 2, 3, and 4) and decides
-        # whether a certain A-bus connection has to be considered or not.
-        # If user has passed 2N as argument, then we consider only those
-        # A-bus connections where value "2" is present in the configuration.
-        my $systemConfig = $targetObj->{system_config};
-        if ($systemConfig eq "2N" && $config =~ /$twoNode/)
-        {
-            # MRW configuration matches system configuration for a 2 node,
-            # therefore apply configuration.
-            $applyConfiguration = 1;
-        }
-        elsif ($systemConfig eq "")
-        {
-            # No system configuration, is MRW configuration for a 3 or 4 node system?
-            # This will skip any connections specific to ONLY 2 node systems
-            if($config =~ /$threeNode/ || $config =~ /$fourNode/)
+            if ($targetObj->isBusAttributeDefined($target, $busIndex, "CONFIG_APPLY"))
             {
-                # MRW configuration is for a 3 or 4 node system,
+                $config = $targetObj->getBusAttribute($target, $busIndex, "CONFIG_APPLY");
+
+                # Cache the bus connection for use later
+                $busConnection = $targetObj->getConnectionBus($target, $busIndex);
+            }
+            else
+            {
+                # If no attribute CONFIG_APPLY exists for this bus connection,
+                # then check next bus connection
+                next;
+            }
+
+            # The CONFIG_APPLY bus attribute carries a comma separated values
+            # for each A-bus connection. For eg.,
+            # "2,3,4" - This connection is applicable in 2,3 and 4 node config
+            # "w" - This connection is applicable only in wrap config
+            # "2" - This connection is applicable only in 2 node config
+            # "4" - This connection is applicable only in 4 node config
+            # The below logic looks for these values (w, 2, 3, and 4) and decides
+            # whether a certain A-bus connection has to be considered or not, based
+            # on the system configuration, the configuration caller passed in via
+            # option '-c'
+            # If user has passed 2N as argument, then we consider only those
+            # A-bus connections where value "2" is present in the configuration.
+            if ($systemConfig eq "2N" && $config =~ /$twoNode/)
+            {
+                # MRW configuration matches system configuration for a 2 node,
                 # therefore apply configuration.
                 $applyConfiguration = 1;
             }
-        }
-        elsif ($config =~ /$systemConfig/)
-        {
-            # If system configuration matches the MRW configuration, then
-            # apply configuration. Ex: wrap config
-            $applyConfiguration = 1;
-        }
-        else
-        {
-            # No valid configuration given via MRW nor system,
-            # therefore DO NOT apply configuration.
-            $applyConfiguration = 0;
-        }
+            elsif ($systemConfig eq "")
+            {
+                # No system configuration, is MRW configuration for a 3 or 4 node system?
+                # This will skip any connections specific to ONLY 2 node systems
+                if($config =~ /$threeNode/ || $config =~ /$fourNode/)
+                {
+                    # MRW configuration is for a 3 or 4 node system,
+                    # therefore apply configuration.
+                    $applyConfiguration = 1;
+                }
+            }
+            elsif ($config =~ /$systemConfig/)
+            {
+                # If system configuration matches the MRW configuration, then
+                # apply configuration. Ex: wrap config
+                $applyConfiguration = 1;
+            }
+            else
+            {
+                # No valid configuration given via MRW nor system,
+                # therefore DO NOT apply configuration.
+                $applyConfiguration = 0;
+            }
+
+            # If this bus connection's CONFIG_APPLY matches the system
+            # configuration, then exit 'for' loop
+            if ($applyConfiguration == 1)
+            {
+                last;
+            }
+        } # for ( my $busIndex = 0; $busIndex < $numBusConnections; $busIndex++ )
 
         # Only proceed if a valid configuration has been ascertained  ...
         if ($applyConfiguration eq 1)
@@ -3293,9 +3551,21 @@ sub processSmpA
 
             # Don't nullify the configuration attributes
             my $nullifyFlag = false;
+
             ($busSrcTarget, $busDestTarget) =
                    setCommonBusConfigAttributes($targetObj, $target, $parentTarget,
                                                 $busConnection, $nullifyFlag);
+
+            # If SMP WRAP configuration then set these variables for both source
+            # and destination targets
+            if ($systemConfig eq "w")
+            {
+                $targetObj->setAttribute($busSrcTarget, "IOHS_CONFIG_MODE", "SMPX");
+                $targetObj->setAttribute($busSrcTarget, "IOHS_DRAWER_INTERCONNECT", "FALSE");
+
+                $targetObj->setAttribute($busDestTarget, "IOHS_CONFIG_MODE", "SMPX");
+                $targetObj->setAttribute($busDestTarget, "IOHS_DRAWER_INTERCONNECT", "FALSE");
+            }
 
             # Set bus transmit MSBSWAP for both source and destination targets
             if ($targetObj->isBusConnBusAttrDefined($busConnection, "SOURCE_TX_MSBSWAP"))
@@ -3309,9 +3579,9 @@ sub processSmpA
                 my $destTxMsbSawp = $targetObj->getBusConnBusAttr($busConnection, "DEST_TX_MSBSWAP");
                 $targetObj->setAttribute($busDestTarget, "EI_BUS_TX_MSBSWAP",  $destTxMsbSawp);
             }
-        } # end if($applyConfiguration eq 1)
-    } # end if ($busConnection ne "")
-} # end sub processSmpA
+        } # if ($applyConfiguration eq 1)
+    } # if ($numBusConnections != 0)
+} # sub processSmpA
 
 #--------------------------------------------------
 # @brief Set the common configuration attributes, 'PEER_TARGET', 'PEER_PATH'
@@ -3584,13 +3854,15 @@ sub processFsi
         #   |         |        |         |
         #   |---------|        |---------|
 
+        use constant TOPOLOGY_MODE1 => 1;
         my $source_type = $targetObj->getType($parentTarget);
         if ( $source_type eq "PROC" )
         {
             my $proc_type = $targetObj->getAttribute($parentTarget, "PROC_MASTER_TYPE");
             if ($proc_type eq "ACTING_MASTER" || $proc_type eq "MASTER_CANDIDATE" )
             {
-                if (getTopologyId($targetObj, $parentTarget) == 1)
+                my $topoId = getTopologyId($targetObj, $parentTarget);
+                if (getTopologyIdChipBits($topoId, TOPOLOGY_MODE1) == 1)
                 {
                   $altfsiswitch = 1;
                 }
@@ -3603,12 +3875,14 @@ sub processFsi
             my $proc_type = $targetObj->getAttribute($fsi_child_target, "PROC_MASTER_TYPE");
             if ($proc_type eq "ACTING_MASTER" || $proc_type eq "MASTER_CANDIDATE" )
             {
-                if (getTopologyId($targetObj, $fsi_child_target) == 1)
+                my $topoId = getTopologyId($targetObj, $fsi_child_target);
+                if (getTopologyIdChipBits($topoId, TOPOLOGY_MODE1) == 1)
                 {
                   $flip_port = 1;
                 }
             }
         }
+
         $targetObj->setFsiAttributes($fsi_child_target,
                     $type,$cmfsi,$proc_path,$fsi_link,$flip_port,$altfsiswitch);
     }
@@ -4511,6 +4785,69 @@ sub getTopologyMode
                       ->{enumerator}->{$topologoyMode}->{value});
 }
 
+
+#--------------------------------------------------
+# @brief Extracts the Group bits from topology ID.
+#
+# @details  The topology ID is a 4 bit value that depends on the topology mode.
+#                Mode      ID
+#               MODE 0 => GGGC
+#               MODE 1 => GGCC
+#
+# @param[in] $topologyId   - The topology ID
+# @param[in] $topologyMode - The topology mode that determines the bit arrangement. Needs to be a base 10 numeral value.
+#
+# @return The value of the group bits.
+sub getTopologyIdGroupBits
+{
+    my $topologyId = shift;
+    my $topologyMode = shift;
+
+    use constant TOPOLOGY_MODE_1 => 1;
+
+    # Assume topology mode 0 (GGGC)
+    my $groupMask = 0xE; # Use 0xE, 1110b, to extract 'GGG' from 'GGGC'
+
+    # If topology mode 1 (GGCC)
+    if (TOPOLOGY_MODE_1 == $topologyMode)
+    {
+        $groupMask = 0xC; # Use 0xC, 1100b, to extract 'GG' from 'GGCC'
+    }
+
+    return ($topologyId & $groupMask);
+}
+
+#--------------------------------------------------
+# @brief Extracts the Chip bits from topology ID.
+#
+# @details  The topology ID is a 4 bit value that depends on the topology mode.
+#                Mode      ID
+#               MODE 0 => GGGC
+#               MODE 1 => GGCC
+#
+# @param[in] $topologyId   - The topology ID
+# @param[in] $topologyMode - The topology mode that determines the bit arrangement. Needs to be a base 10 numeral value.
+#
+# @return The value of the chip bits.
+sub getTopologyIdChipBits
+{
+    my $topologyId = shift;
+    my $topologyMode = shift;
+
+    use constant TOPOLOGY_MODE_1 => 1;
+
+    # Assume topology mode 0 (GGGC)
+    my $chipMask = 0x1;  # Use 0x1, 0001b, to extract 'C' from 'GGGC'
+
+    # If topology mode 1 (GGCC)
+    if (TOPOLOGY_MODE_1 == $topologyMode)
+    {
+        $chipMask = 0x3;  # Use 0x3, 0011b, to extract 'CC' from 'GGCC'
+    }
+
+    return ($topologyId & $chipMask);
+}
+
 #--------------------------------------------------
 # @brief Convert the topology ID to a topology index.
 #
@@ -4533,19 +4870,6 @@ sub convertTopologyIdToIndex
     my $topologyId = shift;
     my $topologyMode = shift;
 
-    use constant TOPOLOGY_MODE_1 => 1;
-
-    # Assume topology mode 0 (GGGC -> GGG0C)
-    my $groupMask = 0xE; # Use 0xE, 1110b, to extract 'GGG' from 'GGGC'
-    my $chipMask = 0x1;  # Use 0x1, 0001b, to extract 'C' from 'GGGC'
-
-    # If topology mode 1 (GGCC -> GG0CC)
-    if (TOPOLOGY_MODE_1 == $topologyMode)
-    {
-        $groupMask = 0xC; # Use 0xC, 1100b, to extract 'GG' from 'GGCC'
-        $chipMask = 0x3;  # Use 0x3, 0011b, to extract 'CC' from 'GGCC'
-    }
-
     # Set topology index to topology ID before doing conversion
     my $topologyIndex = $topologyId;
 
@@ -4560,7 +4884,8 @@ sub convertTopologyIdToIndex
     #  2) extract CC from GGCC: GGCC & 0x3 (0011b) returns CC
     # Bitwise 'OR' 1 and 2 together to produce a 5 bit index value: GGG0C OR GG0CC
     #    Index     =                  1                  'OR'               2
-    $topologyIndex = (($topologyIndex & $groupMask) << 1) | ($topologyIndex & $chipMask);
+    $topologyIndex = (getTopologyIdGroupBits($topologyId, $topologyMode) << 1)
+                   | (getTopologyIdChipBits($topologyId, $topologyMode));
 
     return ($topologyIndex);
 }
@@ -5440,7 +5765,8 @@ sub extractDimmData
         my $type = $targetObj->getType($target);
 
         if ( ($type eq "DIMM")   &&
-             ($targetObj->getTargetType($target) eq "lcard-dimm-ddimm")  &&
+             (($targetObj->getTargetType($target) eq "lcard-dimm-ddimm") ||
+               ($targetObj->getTargetType($target) eq "lcard-dimm-ddimm4u"))  &&
              ($targetObj->getAttribute($target, 'AFFINITY_PATH') =~ m/node-0/) )
         {
             # Use the position of the DIMM as the key in hash to map to the DIMM target.
@@ -5801,6 +6127,7 @@ sub testMaxInstPerProc
         MEM_PORT  => 16,
         DIMM      => 16,
         PMIC      => 32,
+        GENERIC_I2C_DEVICE   => 32,
         OMIC      => 8,
 
         PAUC      => 4,

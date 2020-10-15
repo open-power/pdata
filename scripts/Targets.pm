@@ -219,6 +219,13 @@ sub printTarget
         $target_id =~ s/_chip//g;
         $target_id =~ s/mem_port/memport/g;
     }
+    elsif ($target_TYPE eq "GENERIC_I2C_DEVICE")
+    {
+        # If target is of type GENERIC_I2C_DEVICE, then remove "_chip" and
+        # "generic_i2c_device" from target ID
+        $target_id =~ s/_chip//g;
+        $target_id =~ s/generic_i2c_device/generici2cdevice/g;
+    }
 
     print $fh "\t<id>" . $target_id . "</id>\n";
     if($self->getTargetType($target) eq 'unit-clk-slave')
@@ -291,7 +298,7 @@ sub printAttribute
         # Only spew warning if not in stealth mode
         if (0 == $self->{stealth_mode})
         {
-            #print " Targets.pm> WARNING: empty default tag for attribute : $attribute\n";
+            print " Targets.pm> WARNING: empty default tag for attribute : $attribute\n";
         }
         return;
     }
@@ -678,7 +685,7 @@ sub buildHierarchy
     {
         my $val=$settingptr->{$key}->{property}->
                        {$prop}->{value};
-        if ($val ne "")
+        if ((ref ($val) ne "HASH") and ($val ne ""))
         {
             $self->setAttribute($key, $prop, $val);
         }
@@ -864,7 +871,7 @@ sub getFapiName
     }
     elsif ($targetType eq "PROC"   || $targetType eq "DIMM" ||
            $targetType eq "MEMBUF" || $targetType eq "PMIC" ||
-           $targetType eq "OCMB_CHIP")
+           $targetType eq "OCMB_CHIP" || $targetType eq "GENERIC_I2C_DEVICE")
     {
         if ($node eq "" || $chipPos eq "")
         {
@@ -879,6 +886,10 @@ sub getFapiName
         elsif ($targetType eq "OCMB_CHIP")
         {
             $chipName = "ocmb";
+        }
+        elsif ($targetType eq "GENERIC_I2C_DEVICE")
+        {
+            $chipName = "generici2cslave";
         }
 
         $chipName = lc $chipName;
@@ -971,14 +982,6 @@ sub setFsiAttributes
           $flip_port);
     $self->setAttributeField($target, "FSI_OPTION_FLAGS","reserved", "0");
 
-    # @TODO RTC:257628 This will need to be fixed when support for redundant
-    #                  fsps/bootprocs is implemented.
-    if ( ($self->getType($target) eq "PROC")              &&
-         ($self->getAttribute($target, "POSITION") == 0)     )
-    {
-        # The value of the FSI_MASTER_PORT for all PROCs at position 0 is 0xFF
-        $self->setAttribute($target, "FSI_MASTER_PORT", "0xFF");
-    }
 }
 
 ## remove target
