@@ -189,8 +189,10 @@ static int do_dump_print_prop(struct dtm_node *node, struct dtm_property *prop, 
 		return 0;
 
 	attr = attr_db_attr(state->ainfo, name);
-	if (!attr)
+	if (!attr) {
+		printf("  %s: **UNKNOWN**\n", name);
 		goto skip;
+	}
 
 	attr_copy(attr, &value);
 
@@ -206,13 +208,13 @@ static int do_dump_print_prop(struct dtm_node *node, struct dtm_property *prop, 
 	}
 	printf("\n");
 
-skip:
 	if (value.dim)
 		free(value.dim);
 
 	if (value.value)
 		free(value.value);
 
+skip:
 	return 0;
 }
 
