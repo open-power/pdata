@@ -387,6 +387,10 @@ static int do_export_prop(struct dtm_node *node, struct dtm_property *prop, void
 	const uint8_t *buf;
 	int buflen;
 
+	value = (struct attr) {
+		.type = ATTR_TYPE_UNKNOWN,
+	};
+
 	if (!state->node)
 		return 0;
 
