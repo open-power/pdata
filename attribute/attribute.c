@@ -395,8 +395,11 @@ static int do_export_prop(struct dtm_node *node, struct dtm_property *prop, void
 		return 0;
 
 	attr = attr_db_attr(state->ainfo, name);
-	if (!attr)
+	if (!attr) {
+		fprintf(stderr, "Unknown attribute [%s] for %s\n",
+			name, dtm_node_path(node));
 		goto skip;
+	}
 
 	attr_copy(attr, &value);
 
@@ -425,13 +428,13 @@ static int do_export_prop(struct dtm_node *node, struct dtm_property *prop, void
 		assert(0);
 	}
 
-skip:
 	if (value.dim)
 		free(value.dim);
 
 	if (value.value)
 		free(value.value);
 
+skip:
 	return 0;
 }
 
