@@ -199,6 +199,7 @@ static int do_dump_print_prop(struct dtm_node *node, struct dtm_property *prop, 
 
 	printf("  %s: %s", name, attr_type_to_string(value.type));
 	if (value.size <= 4) {
+		printf(" ");
 		do_dump_value(&value);
 	} else {
 		printf(" [%d]", value.size);
