@@ -45,6 +45,11 @@ sub buildBMCAffinity
             my $location_code = getLocationCode($targetObj, $target);
             $targetObj->setAttribute($target, "LOCATION_CODE", $location_code);
         }
+        elsif ($type eq "TPM")
+        {
+            my $location_code = getLocationCode($targetObj, $target);
+            $targetObj->setAttribute($target, "LOCATION_CODE", $location_code);
+        }
     }
 }
 

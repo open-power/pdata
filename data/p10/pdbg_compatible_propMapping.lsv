@@ -1,5 +1,7 @@
 # Targets pdbg mapping info
 # Format : MRWTargetType:PdbgCompatiblePropValue
+#
+# FAPI targets list
 unit-eq-power10:ibm,power10-eq
 unit-fc-power10:ibm,power10-fc
 unit-core-power10:ibm,power10-core
@@ -19,9 +21,12 @@ unit-omi-power10:ibm,power10-omi
 chip-ocmb:"ibm,power-ocmb", "ibm,power10-ocmb"
 unit-mem_port:ibm,power10-memport
 lcard-dimm-ddimm:ibm,power10-dimm
+# Non-FAPI targets list
 chip-bmc-ast2600:bmc-ast2600
 chip-vreg-generic:ibm,pmic-vreg
 unit-nx-power10:ibm,power10-nx
 unit-occ-power10:ibm,power10-occ
 # Thread target added by genDTS tool for pdbg register access
 unit-thread:"ibm,power-thread", "ibm,power10-thread"
+# TPM target
+chip-NPCT750AAC:ibm,power10-tpm

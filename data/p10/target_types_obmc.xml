@@ -217,4 +217,12 @@
         <id>occ</id>
         <parent>unit</parent>
     </targetType>
+    <targetType>
+        <id>chip-tpm-cectpm</id>
+        <parent>chip</parent>
+    </targetType>
+    <targetType>
+        <id>chip-NPCT750AAC</id>
+        <parent>chip-tpm-cectpm</parent>
+    </targetType>
 </attributes>
