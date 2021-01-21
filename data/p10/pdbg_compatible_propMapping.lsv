@@ -21,6 +21,9 @@ unit-omi-power10:ibm,power10-omi
 chip-ocmb:"ibm,power-ocmb", "ibm,power10-ocmb"
 unit-mem_port:ibm,power10-memport
 lcard-dimm-ddimm:ibm,power10-dimm
+# Using smpgroup instead abus in compatible property as per
+# PHYS_PATH attribute which is changed in processMrw.pl
+unit-abus-power10:ibm,power10-smpgroup
 # Non-FAPI targets list
 chip-bmc-ast2600:bmc-ast2600
 chip-vreg-generic:ibm,pmic-vreg

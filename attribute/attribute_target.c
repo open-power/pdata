@@ -32,7 +32,7 @@ struct {
 	const char *dtree;
 	const char *cronus;
 } class_map[] = {
-	{ "TARGET_TYPE_ABUS", "abus", "abus" },
+	{ "TARGET_TYPE_ABUS", "smpgroup", "smpgroup" },
 	{ "TARGET_TYPE_CAPP", "capp", "capp" },
 	{ "TARGET_TYPE_CORE", "core", "c" },
 	{ "TARGET_TYPE_DIMM", "dimm", "dimm" },

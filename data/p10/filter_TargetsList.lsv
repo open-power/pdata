@@ -19,6 +19,11 @@ unit-omi-power10
 chip-ocmb
 unit-mem_port
 lcard-dimm-ddimm
+# In MRW smpgroup target type used as "unit-abus-power10" and instance name will
+# contain "group" to differentiate between abus and smpgroup if system
+# supporting smpgroup target so, using "unit-abus-power10" to get smpgroup.
+# Please refer processMrw.pl to get more details.
+unit-abus-power10
 # Non-FAPI targets list
 chip-bmc-ast2600
 unit-nx-power10
