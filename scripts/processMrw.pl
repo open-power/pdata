@@ -87,6 +87,8 @@ my %MAX_INST_PER_PARENT =
 
     PAUC      => 4, # Number of PAUCs per PROC
     IOHS      => 2, # Number of IOHSs per PAUC
+    ABUS      => 1, # Not an actual target, but needed for SMPGROUP
+    SMPGROUP  => 2, # Number of SMPGROUPs per applicable IOHS
     PAU       => 2, # Number of PAUs per PAUC
 
     NMMU      => 2, # Number of NMMUs per PROC
@@ -147,6 +149,10 @@ my %MAX_INST_PER_PROC =
 
     PAUC       => getMaxInstPerParent("PAUC"),
     IOHS       => getMaxInstPerParent("PAUC") * getMaxInstPerParent("IOHS"),
+    ABUS       => getMaxInstPerParent("PAUC") * getMaxInstPerParent("IOHS") *
+                  getMaxInstPerParent("ABUS"),
+    SMPGROUP   => getMaxInstPerParent("PAUC") * getMaxInstPerParent("IOHS") *
+                  getMaxInstPerParent("ABUS") * getMaxInstPerParent("SMPGROUP"),
     PAU        => getMaxInstPerParent("PAUC") * getMaxInstPerParent("PAU"),
                   # For PAU, only 6 used, PAU1 and PAU2 not used
 
@@ -166,7 +172,6 @@ my %MAX_INST_PER_PROC =
     PPE        => 51, # Only 21, but they are sparsely populated
     SBE        => 1,
     TPM        => 1,
-    SMPGROUP   => 8,
     PCICLKENDPT => getMaxInstPerParent("PCICLKENDPT"),
     LPCREFCLKENDPT => getMaxInstPerParent("LPCREFCLKENDPT"),
     OMIC_CLK => getMaxInstPerParent("OMIC_CLK"),
@@ -509,8 +514,8 @@ sub processTargets
             elsif ($type eq "PROC")
             {
                 # The P10 children that get processed are:
-                #     CORE, EQ, FC, IOHS, MC, MCC, MI, NMMU, NX, OCC, OMI,
-                #     OMIC, OSCREFCLK, PAU, PAUC, PEC, PERV, SEEPROM
+                #     CORE, EQ, FC, IOHS, ABUS, MC, MCC, MI, NMMU, NX, OCC,
+                #     OMI, OMIC, OSCREFCLK, PAU, PAUC, PEC, PERV, SEEPROM
                 processProcessorAndChildren($targetObj, $target);
             }
             elsif ( ($type eq "DIMM")   &&
@@ -1004,10 +1009,6 @@ sub processNode
 
 } # end sub processNode
 
-
-# Hash which maps a node's ordinal ID to the smallest topology ID in that node
-my %minTopoIdForNode;
-
 #--------------------------------------------------
 # @brief Process targets of type PROC and all it's children
 #
@@ -1099,15 +1100,6 @@ sub processProcessorAndChildren
     $targetObj->{targeting}{SYS}[$sysParentPos]{NODES}[$nodeParentPos]
                 {PROCS}[$procPosPerNode]{KEY} = $target;
 
-    # Save the minimum topology ID in this node for calculating
-    # PROC_MEM_TO_USE later
-    my $topoId = getTopologyId($targetObj,$target);
-    if (   (!defined $minTopoIdForNode{$nodeParentPos})
-        || ($topoId < $minTopoIdForNode{$nodeParentPos}) )
-    {
-        $minTopoIdForNode{$nodeParentPos}=$topoId;
-    }
-
     # Set the PROC's master status
     setProcMasterStatus($targetObj, $target);
 
@@ -1116,8 +1108,8 @@ sub processProcessorAndChildren
 
     # Iterate over the children of the PROC and set some attributes for them
     # NOTE: Must send in the target PROC itself, not it's children.
-    # Rainier children: CORE, EQ, FC, IOHS, MC, MCC, MI, NMMU, NX, OCC,
-    #         OMI, OMIC, OSCREFCLK, PAU, PAUC, PEC, PERV, SEEPROM
+    # Rainier children: CORE, EQ, FC, IOHS, ABUS, MC, MCC, MI, NMMU, NX,
+    #         OCC, OMI, OMIC, OSCREFCLK, PAU, PAUC, PEC, PERV, SEEPROM
     # Children may differ for different systems.
     iterateOverChiplets($targetObj, $target, $sysParentPos,
                         $nodeParentPos, $procPosPerNode);
@@ -2020,15 +2012,14 @@ sub iterateOverChiplets
 
                 # System XML has some sensor target as hidden children
                 # of targets. We don't care for sensors in this function nor
-                # for the XBUS and ABUS.
+                # for the XBUS.
                 # These can be avoided with this conditional.
                 if ($unit_type ne "PCI" && $unit_type ne "NA" &&
                     $unit_type ne "FSI" && $unit_type ne "PSI" &&
                     $unit_type ne "SYSREFCLKENDPT" &&
                     $unit_type ne "PCICLKENDPT"    &&
                     $unit_type ne "LPCREFCLKENDPT" &&
-                    $unit_type ne "ABUS"           &&
-                    $unit_type ne "XBUS" )
+                    $unit_type ne "XBUS")
                 {
                     #set common attrs for child
                     setCommonAttrForChiplet($targetObj, $child,
@@ -2083,7 +2074,18 @@ sub setCommonAttrForChiplet
     my $nodePos   = shift;
     my $procPos   = shift;
 
+    my $instanceName = $targetObj->getInstanceName($target);
     my $targetType  = $targetObj->getType($target);
+    # Change SMPGROUP type from ABUS to SMPGROUP
+    # Need this for naming purposes
+    # If instance name is groupA or groupB
+    if (index($instanceName, "group") != -1)
+    {
+        $targetType = "SMPGROUP";
+        $targetObj->setAttribute($target, "TYPE", $targetType);
+        my $abus_path = $targetObj->getAttribute($target, "INSTANCE_PATH");
+        $targetObj->setAttribute($target, "INSTANCE_PATH", $abus_path."/".$instanceName);
+    }
 
     # Make sure the target's parent has been processed.
     if ($targetType eq "PHB")
@@ -2098,7 +2100,21 @@ sub setCommonAttrForChiplet
 
     # Targets have the CHIP_UNIT (target position) attribute set, for the first
     # PROC, which allows for some of the other numerical data to calculated.
+    # TODO RTC: 245730 get MRW changed for SMPGROUP CHIP_UNIT (currently it's just 0)
     my $targetPos = $targetObj->getAttribute($target, "CHIP_UNIT");
+    if ($targetType eq "SMPGROUP")
+    {
+        # Get CHIP_UNIT of IOHS parent
+        my $iohsParent = $targetObj->findParentByType($target, "IOHS");
+        my $iohsChipUnit = $targetObj->getAttribute($iohsParent, "CHIP_UNIT");
+        my $smpUnit = 1;
+        if (index($instanceName, "groupA") != -1)
+        {
+            $smpUnit = 0; # found groupA in instanceName
+        }
+        $targetPos = 2 * $iohsChipUnit + $smpUnit;
+        $targetObj->setAttribute($target, "CHIP_UNIT", $targetPos);
+    }
 
     # Calculate a per parent numerical value.  The per parent numerical value
     # is used to populate the AFFINITY_PATH, PHYS_PATH and REL_PATH.
@@ -2143,6 +2159,12 @@ sub setCommonAttrForChiplet
     $targetObj->setAttribute($target, "FAPI_POS",      $ordinalId);
     $targetObj->setAttribute($target, "FAPI_NAME",     $fapiName);
     $targetObj->setAttribute($target, "REL_POS",       $perParentNumValue);
+    # Remove abus from smpgroup affinity and physical path
+    if ($targetType eq "SMPGROUP")
+    {
+        $targetPhysical =~ s/abus-\d+\///;
+        $targetAffinity =~ s/abus-\d+\///;
+    }
     $targetObj->setAttribute($target, "AFFINITY_PATH", $targetAffinity);
     $targetObj->setAttribute($target, "PHYS_PATH",     $targetPhysical);
 
@@ -2173,9 +2195,13 @@ sub setCommonAttrForChiplet
     }
 
     # Save this target for retrieval later when printing the xml (sub printXML)
-    push(@{$targetObj->{targeting}
+    # TODO RTC: 245730 Remove this check when MRW fixes typing of SMPGROUP
+    if ($targetType ne "ABUS")
+    {
+        push(@{$targetObj->{targeting}
             ->{SYS}[$sysPos]{NODES}[$nodePos]{PROCS}[$procPos]{$targetType}},
             { 'KEY' => $target });
+    }
 
     # Mark this target as processed
     markTargetAsProcessed($targetObj, $target);
@@ -2297,8 +2323,7 @@ sub getParentProcAffinityPath
     my $affinity_path = "";
 
     # Only get affinity path for supported types.
-    if(($type_name ne "TPM")
-      && ($type_name ne "POWER_SEQUENCER"))
+    if($type_name ne "POWER_SEQUENCER")
     {
         select()->flush(); # flush buffer before spewing out error message
         die "Attempted to get parent processor affinity path" .
@@ -2853,7 +2878,6 @@ sub postProcessProcessor
     my $systemName = $targetObj->getSystemName();
 
     ## Copy PCIE attributes from socket
-    ## Copy PBAX attributes from socket for Denali only
     foreach my $attr (sort (keys
            %{ $targetObj->getTarget($socket_target)->{TARGET}->{attribute} }))
     {
@@ -2864,24 +2888,6 @@ sub postProcessProcessor
         elsif ($attr =~/NO_APSS_PROC_POWER_VCS_VIO_WATTS/)
         {
             $targetObj->copyAttribute($socket_target,$target,$attr);
-        }
-        # TODO RTC 260629: Remove this leg of logic when all MRWs
-        # have switched to entirely consume these attributes from processor
-        # globals or instances, and update the PBAX comment above.
-        elsif ($systemName =~ m/DENALI/)
-        {
-            if ($attr =~/PBAX_BRDCST_ID_VECTOR/)
-            {
-                $targetObj->copyAttribute($socket_target,$target,$attr);
-            }
-            elsif ($attr =~/PBAX_CHIPID/)
-            {
-                $targetObj->copyAttribute($socket_target,$target,$attr);
-            }
-            elsif ($attr =~/PBAX_GROUPID/)
-            {
-                $targetObj->copyAttribute($socket_target,$target,$attr);
-            }
         }
     }
 
@@ -3038,15 +3044,11 @@ sub postProcessProcessor
                              $targetObj->getAttribute($target,
                                                       "PROC_FABRIC_TOPOLOGY_ID"));
 
-    setupMemoryMaps($targetObj,$target);
-
     # Every processor in the same node gets the smallest topology ID present
     # in the node, indicating which proc's memory to use.  This can change
     # dynamically during system operation.
     my $nodeParent = $targetObj->findParentByType($target, "NODE");
     my $nodeParentPos = $targetObj->getAttribute($nodeParent, "ORDINAL_ID");
-    $targetObj->setAttribute($target,
-                             "PROC_MEM_TO_USE",$minTopoIdForNode{$nodeParentPos});
 
     processPowerRails ($targetObj, $target);
 
@@ -3065,6 +3067,28 @@ sub postProcessProcessor
         # Set the target MRU_ID attribute
         $targetObj->setAttribute($target, "MRU_ID", $mruiId);
     }
+
+    # Set GPIO_INFO_PHYS_PRES for each proc to the same default even though
+    # it's only valid on the primary and alt-primary proc.
+    # It will only get called on the active primary processor during the IPL.
+
+    $targetObj->setAttributeField($target,"GPIO_INFO_PHYS_PRES",
+        "i2cMasterPath",$path);
+    $targetObj->setAttributeField($target,"GPIO_INFO_PHYS_PRES",
+        "port","0");
+    $targetObj->setAttributeField($target,"GPIO_INFO_PHYS_PRES",
+        "devAddr","0xC0");
+    $targetObj->setAttributeField($target,"GPIO_INFO_PHYS_PRES",
+        "engine","2");
+    $targetObj->setAttributeField($target,"GPIO_INFO_PHYS_PRES",
+        "windowOpenPin","0");
+    $targetObj->setAttributeField($target,"GPIO_INFO_PHYS_PRES",
+        "physicalPresencePin","1");
+    $targetObj->setAttributeField($target,"GPIO_INFO_PHYS_PRES",
+        "i2cMuxBusSelector","0xFF");
+    $targetObj->setAttributeField($target,"GPIO_INFO_PHYS_PRES",
+        "i2cMuxPath","physical:sys-0");
+
 } # end sub postProcessProcessor
 
 #--------------------------------------------------
@@ -3344,26 +3368,11 @@ sub postProcessIohs
     my $targetType = targetTypeSanityCheck($targetObj, $target, "IOHS");
     validateTargetHasBeenPreProcessed($targetObj, $target);
 
-    my $iohsConfigMode = $targetObj->getAttribute($target, "IOHS_CONFIG_MODE");
-    if ($iohsConfigMode eq "SMPA")
+    # If in SMP WRAP mode, then ignore the IOHS_CONFIG_MODE attribute of the IOHS
+    # target and process *all* bus connections of type SMPA and SMPX .
+    if ($targetObj->{system_config} eq "w")
     {
         # Iterate over the children looking for ABUS
-        foreach my $child (@{ $targetObj->getTargetChildren($target) })
-        {
-            my $childType = $targetObj->getType($child);
-            if ($childType eq "ABUS")
-            {
-                # The bus connection are one more level deep in the GroupA/GroupB target
-                foreach my $group (@{ $targetObj->getTargetChildren($child) })
-                {
-                    processSmpA($targetObj, $group, $target);
-                }
-            }
-        } # foreach my $child (@{ $targetObj->getTargetChildren($target) })
-    }
-    elsif ($iohsConfigMode eq "SMPX")
-    {
-        # Iterate over the children looking for XBUS
         foreach my $child (@{ $targetObj->getTargetChildren($target) })
         {
             my $childType = $targetObj->getType($child);
@@ -3371,8 +3380,49 @@ sub postProcessIohs
             {
                 processSmpX($targetObj, $child, $target);
             }
-        } # foreach my $child (@{ $targetObj->getTargetChildren($target) })
-    } # end if ($iohsConfigMode eq "SMPA") ... elseif ...
+            elsif ($childType eq "ABUS")
+            {
+                # The bus connection are one more level deep in the GroupA/GroupB target
+                foreach my $group (@{ $targetObj->getTargetChildren($child) })
+                {
+                    processSmpA($targetObj, $group, $target);
+                }
+            }
+        }
+    }
+    # Not in SMP WRAP mode, process the IOHS targets according to the attribute IOHS_CONFIG_MODE
+    else
+    {
+        my $iohsConfigMode = $targetObj->getAttribute($target, "IOHS_CONFIG_MODE");
+        if ($iohsConfigMode eq "SMPA")
+        {
+            # Iterate over the children looking for ABUS
+            foreach my $child (@{ $targetObj->getTargetChildren($target) })
+            {
+                my $childType = $targetObj->getType($child);
+                if ($childType eq "ABUS")
+                {
+                    # The bus connection are one more level deep in the GroupA/GroupB target
+                    foreach my $group (@{ $targetObj->getTargetChildren($child) })
+                    {
+                        processSmpA($targetObj, $group, $target);
+                    }
+                }
+            } # foreach my $child (@{ $targetObj->getTargetChildren($target) })
+        }
+        elsif ($iohsConfigMode eq "SMPX")
+        {
+            # Iterate over the children looking for XBUS
+            foreach my $child (@{ $targetObj->getTargetChildren($target) })
+            {
+                my $childType = $targetObj->getType($child);
+                if ($childType eq "XBUS")
+                {
+                    processSmpX($targetObj, $child, $target);
+                }
+            } # foreach my $child (@{ $targetObj->getTargetChildren($target) })
+        } # end if ($iohsConfigMode eq "SMPA") ... elseif ...
+    } # if ($targetObj->{system_config} eq "w") ... else ...
 
 } # end sub postProcessIohs
 
@@ -3462,7 +3512,6 @@ sub processSmpA
     my $busConnection = "";
     # Retrieve option '-c' caller supplied
     my $systemConfig = $targetObj->{system_config};
-
     my $numBusConnections = $targetObj->getNumConnections($target);
     # Only proceed if a bus connection exists ...
     if ($numBusConnections != 0)
@@ -3615,6 +3664,29 @@ sub setCommonBusConfigAttributes
     chop($busSrcPath);
     chop($busDestPath);
 
+    # Save off abus level for use later
+    my $busSrcCopy = $busSrcPath;
+    my $busDestCopy = $busDestPath;
+    my $type = $targetObj->getType($target);
+    my $abusSrc = 0;
+    my $abusDest = 0;
+    if ($type eq "SMPGROUP")
+    {
+        if ($busSrcCopy !~ s/(abus.*)//g)
+        {
+            select()->flush(); # flush buffer before spewing out error message
+            die "MRW is not as expected when finding ABUS src: $busSrcPath";
+        }
+        $abusSrc = $1;
+
+        if ($busDestCopy !~ s/(abus.*)//g)
+        {
+            select()->flush(); # flush buffer before spawning out error message
+            die "MRW is not as expected when finding ABUS dest: $busDestPath";
+        }
+        $abusDest = $1;
+    }
+
     # SMPA has one more level of indirection, remove it
     $busSrcPath =~ s/\/abus.*//g;
     $busDestPath =~ s/\/abus.*//g;
@@ -3636,6 +3708,8 @@ sub setCommonBusConfigAttributes
     # can only work with targets that have absolute paths.
     my $busSrcTarget = $prependingPathData . $busSrcPath;
     my $busDestTarget = $prependingPathData . $busDestPath;
+    my $busSrcTargetCopy = $busSrcTarget;
+    my $busDestTargetCopy = $busDestTarget;
 
     if ( $nullifyFlag == false )
     {
@@ -3643,6 +3717,39 @@ sub setCommonBusConfigAttributes
         # Pre-fetch the BUS_TYPE, HUID and PHYS_PATH of the source and
         # destination targets
         my $busType = $busConnection->{bus_type};
+
+        # Set up paths for smpgroup
+        if ($type eq "SMPGROUP")
+        {
+            # Append smpgroup to the bus target by extracting out groupA/groupB
+            my $targetCopy = $target;
+            if ($targetCopy !~ s/(group.*)//g)
+            {
+                select()->flush(); # flush buffer before spewing out error message
+                die "MRW is not as expected when finding ABUS";
+            }
+            my $smpgroup = $1;
+
+            $busSrcTargetCopy .= "/$abusSrc/$smpgroup";
+            $busDestTargetCopy .= "/$abusDest/$smpgroup";
+
+            my $busSrcHuid = $targetObj->getAttribute($busSrcTargetCopy, "HUID");
+            my $busSrcPhysicalPath = $targetObj->getAttribute($busSrcTargetCopy, "PHYS_PATH");
+
+            my $busDestHuid = $targetObj->getAttribute($busDestTargetCopy, "HUID");
+            my $busDestPhysicalPath = $targetObj->getAttribute($busDestTargetCopy, "PHYS_PATH");
+
+            # Set attributes for the target ends
+            $targetObj->setAttribute($busSrcTargetCopy, "PEER_TARGET", $busDestPhysicalPath);
+            $targetObj->setAttribute($busSrcTargetCopy, "PEER_PATH",   $busDestPhysicalPath);
+            $targetObj->setAttribute($busSrcTargetCopy, "PEER_HUID",   $busDestHuid);
+            $targetObj->setAttribute($busSrcTargetCopy, "BUS_TYPE",    $busType);
+
+            $targetObj->setAttribute($busDestTargetCopy, "PEER_TARGET", $busSrcPhysicalPath);
+            $targetObj->setAttribute($busDestTargetCopy, "PEER_PATH",   $busSrcPhysicalPath);
+            $targetObj->setAttribute($busDestTargetCopy, "PEER_HUID",   $busSrcHuid);
+            $targetObj->setAttribute($busDestTargetCopy, "BUS_TYPE",    $busType);
+        }
 
         my $busSrcHuid = $targetObj->getAttribute($busSrcTarget, "HUID");
         my $busSrcPhysicalPath = $targetObj->getAttribute($busSrcTarget, "PHYS_PATH");
@@ -3660,6 +3767,7 @@ sub setCommonBusConfigAttributes
         $targetObj->setAttribute($busDestTarget, "PEER_PATH",   $busSrcPhysicalPath);
         $targetObj->setAttribute($busDestTarget, "PEER_HUID",   $busSrcHuid);
         $targetObj->setAttribute($busDestTarget, "BUS_TYPE",    $busType);
+
     }
     else
     {
@@ -3862,7 +3970,7 @@ sub processFsi
             if ($proc_type eq "ACTING_MASTER" || $proc_type eq "MASTER_CANDIDATE" )
             {
                 my $topoId = getTopologyId($targetObj, $parentTarget);
-                if (getTopologyIdChipBits($topoId, TOPOLOGY_MODE1) == 1)
+                if (getTopologyIdChip($topoId, TOPOLOGY_MODE1) == 1)
                 {
                   $altfsiswitch = 1;
                 }
@@ -3876,7 +3984,7 @@ sub processFsi
             if ($proc_type eq "ACTING_MASTER" || $proc_type eq "MASTER_CANDIDATE" )
             {
                 my $topoId = getTopologyId($targetObj, $fsi_child_target);
-                if (getTopologyIdChipBits($topoId, TOPOLOGY_MODE1) == 1)
+                if (getTopologyIdChip($topoId, TOPOLOGY_MODE1) == 1)
                 {
                   $flip_port = 1;
                 }
@@ -4014,22 +4122,6 @@ sub processI2C
             {
                 $type = "0xFF";
             }
-            # FXIME RTC: 212110 Secureboot: P10 - HDAT SPI rework  - HDAT security related code
-            # # TPM types can vary by MODEL number
-            # elsif ($type_str eq "NUVOTON_TPM")
-            # {
-            #     # Model values can be found in tpmddif.H and are kept in
-            #     # sync with TPM_MODEL attribute in attribute_types_hb.xml
-            #     my $tpm_model = $targetObj->getAttribute($i2c->{DEST_PARENT},"TPM_MODEL");
-            #     if ($tpm_model eq 1)
-            #     {
-            #         $type = $targetObj->getEnumValue("HDAT_I2C_DEVICE_TYPE",$type_str);
-            #     }
-            #     if ($tpm_model eq 2)
-            #     {
-            #         $type = $targetObj->getEnumValue("HDAT_I2C_DEVICE_TYPE","TCG_I2C_TPM");
-            #     }
-            # }
             else
             {
                 $type = $targetObj->getEnumValue("HDAT_I2C_DEVICE_TYPE",$type_str);
@@ -4157,24 +4249,6 @@ sub processI2C
                         }
                     }
                 }
-
-                # FXIME RTC: 212110 Secureboot: P10 - HDAT SPI rework  - HDAT security related code
-                # # For TPM:
-                # # <vendor>,<device type>,<purpose>,<scope>
-                # if ($type_str eq "NUVOTON_TPM")
-                # {
-                #     # Model values can be found in tpmddif.H and are kept in
-                #     # sync with TPM_MODEL attribute in attribute_types_hb.xml
-                #     my $tpm_model = $targetObj->getAttribute($i2c->{DEST_PARENT},"TPM_MODEL");
-                #     if ($tpm_model eq 1)
-                #     {
-                #         $label = "nuvoton,npct601,tpm,host";
-                #     }
-                #     if ($tpm_model eq 2)
-                #     {
-                #         $label = "tcg,tpm_i2c_ptp,tpm,host";
-                #     }
-                # }
 
                 if ($label eq "")
                 {
@@ -4702,55 +4776,6 @@ sub processPowerRails
 ################################################################################
 # Subroutines that support the post processing subroutines
 ################################################################################
-#--------------------------------------------------
-# @brief Set up memory maps for certain attributes of the PROCS
-#--------------------------------------------------
-sub setupMemoryMaps
-{
-    my $targetObj = shift;
-    my $target = shift;
-
-    # Keep track of which topology IDs have been used
-    my $topoId = getTopologyId($targetObj, $target);
-    $targetObj->{TOPOLOGY}->{$topoId}++;
-
-    # Get the topology index
-    my $topologyIndex = getTopologyIndex($targetObj, $target);
-
-    # P10 has a defined memory map for all configurations,
-    # these are the base addresses for topology ID 0 (group0-chip0).
-    my %bars=(  "FSP_BASE_ADDR"             => 0x0006030100000000,
-                "PSI_BRIDGE_BASE_ADDR"      => 0x0006030203000000);
-
-    #Note - Not including XSCOM_BASE_ADDRESS and LPC_BUS_ADDR in here
-    # because Hostboot code itself writes those on every boot
-    if (!$targetObj->isBadAttribute($target,"XSCOM_BASE_ADDRESS") )
-    {
-        $targetObj->deleteAttribute($target,"XSCOM_BASE_ADDRESS");
-    }
-    if (!$targetObj->isBadAttribute($target,"LPC_BUS_ADDR") )
-    {
-        $targetObj->deleteAttribute($target,"LPC_BUS_ADDR");
-    }
-
-    # The topology index resides in bits 15:19 of the P10 memory map.
-    # This offset, when multiplied to the index, will put the index in the
-    # correct bits of the memory map.
-    my $topologyIndexOffset = 0x0000100000000000;
-
-    # Add the topology index to the bar base memory
-    foreach my $bar (keys %bars)
-    {
-        my $base = Math::BigInt->new($bars{$bar});
-
-        # Add the topology index (multiplied out to the correct position)
-        # to the base.
-        my $value=sprintf("0x%016s",substr(($base +
-                          ($topologyIndexOffset*$topologyIndex))->as_hex(),2));
-        # Set the bar of the target to calculated value
-        $targetObj->setAttribute($target,$bar,$value);
-    }
-} # end setupMemoryMaps
 
 #--------------------------------------------------
 # @brief Retrieve the fabric topology mode
@@ -4787,7 +4812,7 @@ sub getTopologyMode
 
 
 #--------------------------------------------------
-# @brief Extracts the Group bits from topology ID.
+# @brief Extracts the Group bits from topology ID (right-justified as number).
 #
 # @details  The topology ID is a 4 bit value that depends on the topology mode.
 #                Mode      ID
@@ -4798,7 +4823,7 @@ sub getTopologyMode
 # @param[in] $topologyMode - The topology mode that determines the bit arrangement. Needs to be a base 10 numeral value.
 #
 # @return The value of the group bits.
-sub getTopologyIdGroupBits
+sub getTopologyIdGroup
 {
     my $topologyId = shift;
     my $topologyMode = shift;
@@ -4806,19 +4831,21 @@ sub getTopologyIdGroupBits
     use constant TOPOLOGY_MODE_1 => 1;
 
     # Assume topology mode 0 (GGGC)
-    my $groupMask = 0xE; # Use 0xE, 1110b, to extract 'GGG' from 'GGGC'
+    # Use 0xE, 1110b, to extract 'GGG' from 'GGGC'
+    my $groupId = ($topologyId & 0xE) >> 1;
 
     # If topology mode 1 (GGCC)
     if (TOPOLOGY_MODE_1 == $topologyMode)
     {
-        $groupMask = 0xC; # Use 0xC, 1100b, to extract 'GG' from 'GGCC'
+        # Use 0xC, 1100b, to extract 'GG' from 'GGCC'
+        $groupId = ($topologyId & 0xC) >> 2;
     }
 
-    return ($topologyId & $groupMask);
+    return ($groupId);
 }
 
 #--------------------------------------------------
-# @brief Extracts the Chip bits from topology ID.
+# @brief Extracts the Chip bits from topology ID (right-justified as number).
 #
 # @details  The topology ID is a 4 bit value that depends on the topology mode.
 #                Mode      ID
@@ -4829,7 +4856,7 @@ sub getTopologyIdGroupBits
 # @param[in] $topologyMode - The topology mode that determines the bit arrangement. Needs to be a base 10 numeral value.
 #
 # @return The value of the chip bits.
-sub getTopologyIdChipBits
+sub getTopologyIdChip
 {
     my $topologyId = shift;
     my $topologyMode = shift;
@@ -4875,17 +4902,10 @@ sub convertTopologyIdToIndex
 
     ## Turn the 4 bit topology ID into a 5 bit index
     ## convert GGGC to GGG0C
-    ##      OR GGCC to GG0CC
-    # If group mask equal to 0xE (mode 0) then extract 'GGG' from 'GGGC':
-    #  1) GGGC & 0xE (1110b) returns GGG0 then shift left (<< 1) to get GGG00
-    #  2) extract C from GGGC: GGGC & 0x1 (0001b) returns C
-    # If group mask equal to 0xC (mode 1) then extract 'GG' from 'GGCC':
-    #  1) GGCC & 0xC (1100b) returns GG00 then shift left (<< 1) to get GG000
-    #  2) extract CC from GGCC: GGCC & 0x3 (0011b) returns CC
-    # Bitwise 'OR' 1 and 2 together to produce a 5 bit index value: GGG0C OR GG0CC
-    #    Index     =                  1                  'OR'               2
-    $topologyIndex = (getTopologyIdGroupBits($topologyId, $topologyMode) << 1)
-                   | (getTopologyIdChipBits($topologyId, $topologyMode));
+    ##      OR GGCC to 0GGCC
+    my $group = getTopologyIdGroup($topologyId, $topologyMode);
+    my $chip = getTopologyIdChip($topologyId, $topologyMode);
+    $topologyIndex = ($group << 2) | ($chip);
 
     return ($topologyIndex);
 }
@@ -5995,7 +6015,7 @@ sub testTopologyIdToTopologyIndex
 
     # The different values expected when mode is 0 or 1
     use constant TOPOLOGY_MODE_0_ARRAY => qw/ 0 1 4 5 8 9 12 13 16 17 20 21 24 25 28 29 /;
-    use constant TOPOLOGY_MODE_1_ARRAY => qw/ 0 1 2 3 8 9 10 11 16 17 18 19 24 25 26 27 /;
+    use constant TOPOLOGY_MODE_1_ARRAY => qw/ 0 1 2 4 5 6  7  8  9 10 11 12 13 14 15 16 /;
 
     # The different topology modes
     use constant TOPOLOGY_MODES => qw/ MODE0 MODE1 /;
