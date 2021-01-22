@@ -276,8 +276,18 @@ static bool construct_cronus_target(struct cronus_target *ct, char *name, size_t
 		goto done;
 	}
 
+	assert(ct->chip_name);
 	assert(ct->class_name);
+	assert(ct->cage != -1);
+	assert(ct->node != -1);
+	assert(ct->slot != -1);
 	assert(ct->chip_unit != -1);
+
+	/* Targets which are sitting outside proc e.g bmc, tpm */
+	if(ct->chip_position == -1) {
+		ret = snprintf(name, len, "%s.%s:k%d:n%d:s%d:c%d", ct->chip_name, ct->class_name, ct->cage, ct->node, ct->slot, ct->chip_unit);
+		goto done;
+      }
 
 	ret = snprintf(name, len, "%s.%s:k%d:n%d:s%d:p%02d:c%d", ct->chip_name, ct->class_name, ct->cage, ct->node, ct->slot, ct->chip_position, ct->chip_unit);
 
@@ -357,9 +367,18 @@ struct dtm_node *from_cronus_target(struct dtm_node *root, const char *name)
 	if (!ct.chip_name)
 		return root;
 
-	/* Proc with index */
-	assert(ct.chip_position != -1);
+	/* Targets which are sitting outside proc e.g bmc, tpm */
+	if (ct.chip_position == -1) {
+		assert(ct.class_name);
+		assert(ct.chip_unit != -1);
 
+		sprintf(path, "/%s%d", ct.class_name, ct.chip_unit);
+		target = dtm_find_node_by_path(root, path);
+		assert(target);
+		return target;
+	}
+
+	/* Proc with index */
 	sprintf(path, "/proc%d", ct.chip_position);
 	proc = dtm_find_node_by_path(root, path);
 	assert(proc);
@@ -407,11 +426,6 @@ char *to_cronus_target(struct dtm_node *root, struct dtm_node *node)
 
 			free(dtree_class);
 		}
-
-		if (proc == NULL)
-			return NULL;
-
-		assert(ct.chip_position != -1);
 
 		if (node != proc) {
 			name = dtm_node_name(node);
