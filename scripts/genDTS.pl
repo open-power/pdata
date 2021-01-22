@@ -406,12 +406,15 @@ sub processTargetPath
         $lastNode->index(${$lastNode->attributeList}{"CHIP_UNIT"}->value);
     }
 
-    # Filling index for ocmb target based on omi target CHIP_UNIT attribute
-    # because ocmb is not pervasive target
-    if ($lastNode->compatible eq "chip-ocmb")
+    # Filling index for ocmb, memport, dimm targets based on omi target
+    # CHIP_UNIT attribute because, those targets are not pervasive target
+    if ( ( index( $lastNode->compatible, "chip-ocmb") != -1 ) or
+         ( index( $lastNode->compatible, "unit-mem_port") != -1 ) or
+         ( index( $lastNode->compatible, "dimm") != -1 )
+       )
     {
         # To get omi target CHIP_UNIT attribute, need to get omi target id.
-        # So, using ocmb target AFFINITY_PATH to get omi target id.
+        # So, using respective given target AFFINITY_PATH to get omi target id.
         if (exists ${$lastNode->attributeList}{"AFFINITY_PATH"})
         {
             my $affinityPath = ${$lastNode->attributeList}{"AFFINITY_PATH"}->value;
@@ -423,9 +426,12 @@ sub processTargetPath
 
         # Changing node name for ocmb target as per pdbg expectation.
         # Removing "_chip" from ocmb target element value from PHYS_PATH value.
-        my $nodeName = $lastNode->nodeName;
-        $nodeName =~ s/_chip//g;
-        $lastNode->nodeName($nodeName);
+        if (index( $lastNode->compatible, "chip-ocmb") != -1)
+        {
+            my $nodeName = $lastNode->nodeName;
+            $nodeName =~ s/_chip//g;
+            $lastNode->nodeName($nodeName);
+        }
     }
     elsif ($lastNode->compatible eq "unit-fsi")
     {
