@@ -74,6 +74,7 @@ struct {
 	{ "TARGET_TYPE_OCC", "occ", "occ" },
 
 	{ "TARGET_TYPE_TPM", "tpm", "tpm" },
+	{ "TARGET_TYPE_BMC", "bmc", "bmc" },
 	{ NULL, NULL, NULL },
 };
 
