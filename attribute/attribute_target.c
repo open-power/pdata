@@ -72,7 +72,8 @@ struct {
 
 	{ "TARGET_TYPE_NX", "nx", "nx" },
 	{ "TARGET_TYPE_OCC", "occ", "occ" },
-      { "TARGET_TYPE_TPM", "tpm", "tpm" },
+
+	{ "TARGET_TYPE_TPM", "tpm", "tpm" },
 	{ NULL, NULL, NULL },
 };
 
