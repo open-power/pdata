@@ -28,6 +28,9 @@
         <attribute>
             <id>ALLOW_ATTR_OVERRIDES</id>
         </attribute>
+        <attribute>                                                             
+            <id>NO_XSCOM_ENFORCEMENT</id>                                       
+        </attribute>
         <id>sys</id>
         <parent>base</parent>
     </targetType>

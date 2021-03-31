@@ -682,4 +682,19 @@
         </simpleType>
     </attribute>
 
+    <attribute>                                                                 
+        <description>Disable XSCOM read/write enforcement in secure mode.
+           A value of 1 disables XSCOM security enforcement. No-op on
+           production-keyed systems (XSCOM enforcement is always enabled).
+        </description>
+        <id>NO_XSCOM_ENFORCEMENT</id>
+        <persistency>non-volatile</persistency>
+        <readable></readable>
+        <simpleType>
+            <uint8_t>
+                <default>0</default>
+            </uint8_t>
+        </simpleType>
+    </attribute>
+
 </attributes>
