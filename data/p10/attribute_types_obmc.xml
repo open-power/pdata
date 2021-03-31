@@ -666,4 +666,20 @@
             </string>
         </simpleType>
     </attribute>
+
+    <attribute>
+        <description>Allow attribute overrides in secure mode. A value of 1
+           allows attribure overrde in secure mode. No-op on production-keyed
+           systems (attr override is always disabled).
+        </description>
+        <id>ALLOW_ATTR_OVERRIDES</id>
+        <persistency>non-volatile</persistency>
+        <readable></readable>
+        <simpleType>
+            <uint8_t>
+                <default>0</default>
+            </uint8_t>
+        </simpleType>
+    </attribute>
+
 </attributes>

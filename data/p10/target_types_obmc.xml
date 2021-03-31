@@ -25,6 +25,9 @@
             <id>ISTEP_MODE</id>
             <default>FALSE</default>
         </attribute>
+        <attribute>
+            <id>ALLOW_ATTR_OVERRIDES</id>
+        </attribute>
         <id>sys</id>
         <parent>base</parent>
     </targetType>
