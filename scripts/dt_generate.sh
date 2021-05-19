@@ -95,6 +95,7 @@ debug "Step 1: Splitting EKB HWPs required attributes xml into MRW Targets and A
     --inEkbAttrsXMLFilesList "$data_dir/reqEkbAttrsXmlFileList.lsv" \
     --filterAttrsFile "$filter_attr" \
     --fapiTgtNameMap "$data_dir/FAPITargetsNameMapList.lsv" \
+    --addEkbCustomVal "$data_dir/bmc_customized_ekb_attrs.xml" \
     --outEkbAttrsXML "$tmp_dir/attribute_types_ekb.xml" \
     --outEkbTgtsXML "$tmp_dir/target_types_ekb.xml"
 
