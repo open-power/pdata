@@ -26,6 +26,7 @@
 #include "attribute.h"
 #include "attribute_db.h"
 #include "attribute_format.h"
+#include "attribute_list.h"
 #include "attribute_target.h"
 #include "attribute_util.h"
 
@@ -270,6 +271,7 @@ struct do_export_state {
 	struct attr_info *ainfo;
 	struct dtm_node *root;
 	struct dtm_node *node;
+	struct name_list *alist;
 };
 
 static int do_export_node(struct dtm_node *node, void *priv)
@@ -398,6 +400,9 @@ static int do_export_prop(struct dtm_node *node, struct dtm_property *prop, void
 	if (strncmp(name, "ATTR", 4) != 0)
 		return 0;
 
+	if (!attr_list_exists(state->alist, name))
+		goto skip;
+
 	attr = attr_db_attr(state->ainfo, name);
 	if (!attr) {
 		fprintf(stderr, "Unknown attribute [%s] for %s\n",
@@ -442,12 +447,13 @@ skip:
 	return 0;
 }
 
-static int do_export(const char *dtb, const char *infodb)
+static int do_export(const char *dtb, const char *infodb, const char *attrdb)
 {
 	struct do_export_state state;
 	struct dtm_file *dfile;
 	struct dtm_node *root;
 	struct attr_info ainfo;
+	struct name_list alist;
 	int ret;
 
 	dfile = dtm_file_open(dtb, false);
@@ -462,9 +468,13 @@ static int do_export(const char *dtb, const char *infodb)
 	if (!attr_db_load(infodb, &ainfo))
 		return 2;
 
+	if (!attr_list_parse(attrdb, &alist))
+		return 3;
+
 	state = (struct do_export_state) {
 		.ainfo = &ainfo,
 		.root = root,
+		.alist = &alist,
 	};
 
 	ret = dtm_traverse(root, true, do_export_node, do_export_prop, &state);
@@ -1005,13 +1015,14 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 
 static void bmc_usage(const char *prog)
 {
-	fprintf(stderr, "Usage: %s export\n", prog);
+	fprintf(stderr, "Usage: %s export [<attr-list>]\n", prog);
 	fprintf(stderr, "       %s import <attr-dump>\n", prog);
 	fprintf(stderr, "       %s read <target> <attribute>\n", prog);
 	fprintf(stderr, "       %s write <target> <attribute> <value>\n", prog);
 	fprintf(stderr, "       %s translate <target>\n", prog);
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Options:\n");
+	fprintf(stderr, "  <attr-list>   - Use to pass list of attribute names to export.\n");
 	fprintf(stderr, "  <attr-dump>   - Use to pass attributes dump filename to modify.\n");
 	fprintf(stderr, "  <target>      - Use to pass target name and it can be either\n");
 	fprintf(stderr, "                  cronus target name (e.g for proc: p10:k0:n0:s0:p00)\n");
@@ -1052,10 +1063,13 @@ static int bmc_main(const char *dtb, const char *infodb, int argc, const char **
 		bmc_usage(argv[0]);
 
 	if (strcmp(argv[1], "export") == 0) {
-		if (argc != 2)
+		if (argc != 2 || argc != 3)
 			bmc_usage(argv[0]);
 
-		ret = do_export(dtb, infodb);
+		if (argc == 2)
+			ret = do_export(dtb, infodb, NULL);
+		else
+			ret = do_export(dtb, infodb, argv[2]);
 
 	} else if (strcmp(argv[1], "import") == 0) {
 		if (argc != 3)
@@ -1092,7 +1106,7 @@ static void usage(const char *prog)
 {
 	fprintf(stderr, "Usage: %s create <dtb> <infodb> <out-dtb>\n", prog);
 	fprintf(stderr, "       %s dump <dtb> <infodb> [<target>]\n", prog);
-	fprintf(stderr, "       %s export <dtb> <infodb>\n", prog);
+	fprintf(stderr, "       %s export <dtb> <infodb> [<attr-list>]\n", prog);
 	fprintf(stderr, "       %s import <dtb> <infodb> <attr-dump>\n", prog);
 	fprintf(stderr, "       %s read <dtb> <infodb> <target> <attribute>\n", prog);
 	fprintf(stderr, "       %s translate <dtb> <target>\n", prog);
@@ -1130,10 +1144,13 @@ int main(int argc, const char **argv)
 			ret = do_dump(argv[2], argv[3], argv[4]);
 
 	} else if (strcmp(argv[1], "export") == 0) {
-		if (argc != 4)
+		if (argc != 4 && argc != 5)
 			usage(argv[0]);
 
-		ret = do_export(argv[2], argv[3]);
+		if (argc == 4)
+			ret = do_export(argv[2], argv[3], NULL);
+		else
+			ret = do_export(argv[2], argv[3], argv[4]);
 
 	} else if (strcmp(argv[1], "import") == 0) {
 		if (argc != 5)

@@ -62,6 +62,8 @@ attributes_SOURCES = \
 	attribute/attribute_db.h \
 	attribute/attribute_format.c \
 	attribute/attribute_format.h \
+	attribute/attribute_list.c \
+	attribute/attribute_list.h \
 	attribute/attribute_target.c \
 	attribute/attribute_target.h \
 	attribute/attribute_util.c \
