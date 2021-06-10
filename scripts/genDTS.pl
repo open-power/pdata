@@ -758,19 +758,18 @@ sub setDTSFormatValueForSimpleAttr
             if ( $pValue =~ m/0x/ )
             {
                 $pValue =~ s/0x//g;
-                $pValue = "0".$pValue if length($pValue) == 1;
+                for ( my $x = 0; length($pValue) < 4; $x + 1) { $pValue = "0".$pValue }
             }
             else
             {
-                $pValue = sprintf("%02X", $pValue);
+                $pValue = sprintf("%04X", $pValue);
             }
 
-            my $fByte = ( $pValue >> 8 ) & 0x00FF;
-            my $sByte = $pValue & 0x00FF;
+            my $fByte = substr($pValue, 0, 2);
+            my $sByte = substr($pValue, 2, 2);
 
-            my $tmp = sprintf("%02d %02d", $fByte, $sByte);
             $begFormatSym = "[" if $begFormatSym eq "";
-            $dtsFormatedVal .= $tmp;
+            $dtsFormatedVal .= $fByte." ".$sByte;
             $dtsFormatedVal .= " " if $valSize > 1;
         }
         elsif( $type =~ m/int32/ )
