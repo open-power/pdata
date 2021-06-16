@@ -117,3 +117,4 @@ CA:AFFINITY_PATH
 # CHIP_UNIT attribute require to fill index and CHIP_UNIT_POS
 # attribute value but not require in device tree
 CA:CHIP_UNIT
+CA:SECURE_VERSION_NUM
