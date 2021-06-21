@@ -1063,7 +1063,7 @@ static int bmc_main(const char *dtb, const char *infodb, int argc, const char **
 		bmc_usage(argv[0]);
 
 	if (strcmp(argv[1], "export") == 0) {
-		if (argc != 2 || argc != 3)
+		if (argc != 2 && argc != 3)
 			bmc_usage(argv[0]);
 
 		if (argc == 2)
