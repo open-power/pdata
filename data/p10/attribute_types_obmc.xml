@@ -701,7 +701,7 @@
         <description>The number of secure version currently installed on the system.
                      Hostboot passes this number to the BMC
         </description>
-        <id>SECURE_VERSION_NUM</id>
+        <id>SECURE_VERSION_SEEPROM</id>
         <persistency>non-volatile</persistency>
         <readable></readable>
         <simpleType>

@@ -39,7 +39,7 @@
             <id>DISABLE_SECURITY</id>
         </attribute>
         <attribute>
-            <id>SECURE_VERSION_NUM</id>
+            <id>SECURE_VERSION_SEEPROM</id>
         </attribute>
         <id>sys-sys-power10</id>
         <parent>sys</parent>
