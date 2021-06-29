@@ -193,6 +193,10 @@
         <parent>lcard-dimm</parent>
     </targetType>
     <targetType>
+        <id>lcard-dimm-ddimm4u</id>
+        <parent>lcard-dimm</parent>
+    </targetType>
+    <targetType>
         <id>lcard-dimm</id>
         <parent>card</parent>
     </targetType>

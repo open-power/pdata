@@ -23,5 +23,5 @@ TARGET_TYPE_OMIC:unit-omic-power10
 TARGET_TYPE_OMI:unit-omi-power10
 TARGET_TYPE_OCMB_CHIP:chip-ocmb
 TARGET_TYPE_MEM_PORT:unit-mem_port
-TARGET_TYPE_DIMM:lcard-dimm-ddimm
+TARGET_TYPE_DIMM:lcard-dimm-ddimm,lcard-dimm-ddimm4u
 TARGET_TYPE_ABUS:unit-abus-power10
