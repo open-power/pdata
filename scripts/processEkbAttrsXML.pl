@@ -551,37 +551,40 @@ sub createTargetExtensionFromFapi(\%,\%)
         {
             next;
         }
-        my $targtype = $reqTgtsTrans{$type};
-        my $attrid = $fapiattr->{id};
-        $attrid =~ s/ATTR_//;
-
-        # create new attribute element
-        my $newattr = {};
-        $newattr->{id} = $attrid;
-
-        # look for an existing targetTypeExtension entry
-        #  to modify with new attribute
-        foreach my $targ (@{$alltargext->{targetTypeExtension}})
+        my @targtypes = split(',', $reqTgtsTrans{$type});
+        foreach my $targtype (@targtypes)
         {
-            if( $targ->{id} =~ $targtype )
+            my $attrid = $fapiattr->{id};
+            $attrid =~ s/ATTR_//;
+
+            # create new attribute element
+            my $newattr = {};
+            $newattr->{id} = $attrid;
+
+            # look for an existing targetTypeExtension entry
+            #  to modify with new attribute
+            foreach my $targ (@{$alltargext->{targetTypeExtension}})
             {
-                $foundmatch = 1;
-                my $attrlist = $targ->{attribute};
-                push @$attrlist, $newattr;
-                last;
+                if( $targ->{id} =~ $targtype )
+                {
+                    $foundmatch = 1;
+                    my $attrlist = $targ->{attribute};
+                    push @$attrlist, $newattr;
+                    last;
+                }
             }
-        }
 
-        # no existing entry for this kind of target, make a new one
-        if( $foundmatch == 0 )
-        {
-            my $newext = {};
-            $newext->{id} = $targtype;
-            my $newarray = [];
-            push @$newarray, $newattr;
-            $newext->{attribute} = $newarray;
-            my $allext = $alltargext->{targetTypeExtension};
-            push @$allext, $newext;
+            # no existing entry for this kind of target, make a new one
+            if( $foundmatch == 0 )
+            {
+                my $newext = {};
+                $newext->{id} = $targtype;
+                my $newarray = [];
+                push @$newarray, $newattr;
+                $newext->{attribute} = $newarray;
+                my $allext = $alltargext->{targetTypeExtension};
+                push @$allext, $newext;
+            }
         }
     }
 }

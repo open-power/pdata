@@ -1,5 +1,9 @@
 # Targets Name map list to translate from FAPI name into MRW name
 # Format:- FAPITargetName:MRWTargetName
+#
+# If want to add the same FAPITarget attributes into more than one
+# MRWTarget then it can be added like below.
+# Format:- FAPITargetName:MRWTargetName1,MRWTargetName2
 TARGET_TYPE_SYSTEM:sys-sys-power10
 TARGET_TYPE_PROC_CHIP:chip-processor-power10
 TARGET_TYPE_EQ:unit-eq-power10
