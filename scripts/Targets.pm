@@ -839,8 +839,8 @@ sub getFapiName
     my $self        = shift;
     my $targetType  = shift;
     my $node        = shift;
-    my $chipPos     = shift;
-    my $chipletPos  = shift;
+    my $chipPos     = shift; # chip position relative to node
+    my $chipletPos  = shift; # unit position relative to chip
 
     if ($targetType eq "")
     {
@@ -912,6 +912,10 @@ sub getFapiName
         elsif ($targetType eq "MEM_PORT")
         {
             $chipName = "ocmb.mp";
+        }
+        elsif ($targetType eq "SMPGROUP")
+        {
+            $chipName = "pu.iolink";
         }
         else
         {

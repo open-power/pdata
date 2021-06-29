@@ -87,6 +87,7 @@ my %MAX_INST_PER_PARENT =
 
     PAUC      => 4, # Number of PAUCs per PROC
     IOHS      => 2, # Number of IOHSs per PAUC
+    XBUS      => 1, # Not an actual target, but needed for SMPGROUP
     ABUS      => 1, # Not an actual target, but needed for SMPGROUP
     SMPGROUP  => 2, # Number of SMPGROUPs per applicable IOHS
     PAU       => 2, # Number of PAUs per PAUC
@@ -151,6 +152,8 @@ my %MAX_INST_PER_PROC =
     IOHS       => getMaxInstPerParent("PAUC") * getMaxInstPerParent("IOHS"),
     ABUS       => getMaxInstPerParent("PAUC") * getMaxInstPerParent("IOHS") *
                   getMaxInstPerParent("ABUS"),
+    XBUS       => getMaxInstPerParent("PAUC") * getMaxInstPerParent("IOHS") *
+                  getMaxInstPerParent("XBUS"),
     SMPGROUP   => getMaxInstPerParent("PAUC") * getMaxInstPerParent("IOHS") *
                   getMaxInstPerParent("ABUS") * getMaxInstPerParent("SMPGROUP"),
     PAU        => getMaxInstPerParent("PAUC") * getMaxInstPerParent("PAU"),
@@ -997,6 +1000,7 @@ sub processNode
     $targetObj->setAttribute($target, "ORDINAL_ID",    $nodePosPerSystem);
     $targetObj->setAttribute($target, "FAPI_POS",      $nodePosPerSystem);
     $targetObj->setAttribute($target, "FAPI_NAME",     $nodeFapiName);
+    $targetObj->setAttribute($target, "FAPINAME_NODE", $nodePosPerSystem);
     $targetObj->setAttribute($target, "AFFINITY_PATH", $nodeAffinity);
     $targetObj->setAttribute($target, "PHYS_PATH",     $nodePhysical);
 
@@ -1093,6 +1097,8 @@ sub processProcessorAndChildren
     $targetObj->setAttribute($target, "ORDINAL_ID",    $procPosPerSystem);
     $targetObj->setAttribute($target, "FAPI_POS",      $procPosPerSystem);
     $targetObj->setAttribute($target, "FAPI_NAME",     $fapiName);
+    $targetObj->setAttribute($target, "FAPINAME_NODE", $nodeParentPos);
+    $targetObj->setAttribute($target, "FAPINAME_POS", $procPosPerNode);
     $targetObj->setAttribute($target, "AFFINITY_PATH", $procAffinity);
     $targetObj->setAttribute($target, "PHYS_PATH",     $procPhysical);
 
@@ -1248,7 +1254,7 @@ sub processDdimmAndChildren
     # In the future, to support planar configs, where there will be 2 DIMMs behind
     # a mem port. Therefore the DIMM position will need to be an offset of 2.
     # Hard code the offset for now.
-    my $dimmFapiPosition = $dimmPosPerSystem * 2;
+    my $dimmFapiPosition = $dimmPosPerNode * 2;
 
     # Get the FAPI_NAME by using the data gathered above.
     my $dimmFapiName = $targetObj->getFapiName($type, $nodeParentPos, $dimmFapiPosition);
@@ -1266,6 +1272,8 @@ sub processDdimmAndChildren
     $targetObj->setAttribute($target, "ORDINAL_ID",    $dimmPosPerSystem);
     $targetObj->setAttribute($target, "FAPI_POS",      $dimmFapiPosition);
     $targetObj->setAttribute($target, "FAPI_NAME",     $dimmFapiName);
+    $targetObj->setAttribute($target, "FAPINAME_NODE", $nodeParentPos);
+    $targetObj->setAttribute($target, "FAPINAME_POS", $dimmFapiPosition);
     $targetObj->setAttribute($target, "REL_POS",       $ddimmPosPerParent);
     $targetObj->setAttribute($target, "AFFINITY_PATH", $ddimmAffinity);
     $targetObj->setAttribute($target, "PHYS_PATH",     $ddimmPhysical);
@@ -1410,7 +1418,7 @@ sub processPmic
     my $pmicId = ($dimmId * $maxPmicPerDdimm) + $pmicInstancePos;
 
     # Get the FAPI_NAME by using the data gathered above
-    my $pmicFapiName = $targetObj->getFapiName($targetType, $nodeParentPos, $pmicPosPerSystem);
+    my $pmicFapiName = $targetObj->getFapiName($targetType, $nodeParentPos, $pmicPosPerNode);
 
     # Take advantage of previous work done on the DDIMMs and NODEs.  Use these
     # parent affinity/physical path for our self and append pmic to the end.
@@ -1426,6 +1434,8 @@ sub processPmic
     $targetObj->setAttribute($target, "ORDINAL_ID",    $pmicPosPerSystem);
     $targetObj->setAttribute($target, "FAPI_POS",      $pmicPosPerSystem);
     $targetObj->setAttribute($target, "FAPI_NAME",     $pmicFapiName);
+    $targetObj->setAttribute($target, "FAPINAME_NODE", $nodeParentPos);
+    $targetObj->setAttribute($target, "FAPINAME_POS",  $pmicPosPerNode);
     $targetObj->setAttribute($target, "REL_POS",       $pmicInstancePos);
     $targetObj->setAttribute($target, "AFFINITY_PATH", $pmicAffinity);
     $targetObj->setAttribute($target, "PHYS_PATH",     $pmicPhysical);
@@ -1547,7 +1557,7 @@ sub processGenericI2cDevice
     my $deviceId = ($dimmId * $maxDevicePerDdimm) + $instancePos;
 
     # Get the FAPI_NAME by using the data gathered above
-    my $fapiName = $targetObj->getFapiName($targetType, $nodeParentPos, $posPerSystem);
+    my $fapiName = $targetObj->getFapiName($targetType, $nodeParentPos, $posPerNode);
 
     # Take advantage of previous work done on the DDIMMs and NODEs.  Use these
     # parent affinity/physical path for our self and append "generic_i2c_device" to the end.
@@ -1564,6 +1574,8 @@ sub processGenericI2cDevice
     $targetObj->setAttribute($target, "ORDINAL_ID",    $posPerSystem);
     $targetObj->setAttribute($target, "FAPI_POS",      $posPerSystem);
     $targetObj->setAttribute($target, "FAPI_NAME",     $fapiName);
+    $targetObj->setAttribute($target, "FAPINAME_NODE", $nodeParentPos);
+    $targetObj->setAttribute($target, "FAPINAME_POS",  $posPerNode);
     $targetObj->setAttribute($target, "REL_POS",       $instancePos);
     $targetObj->setAttribute($target, "AFFINITY_PATH", $deviceAffinity);
     $targetObj->setAttribute($target, "PHYS_PATH",     $devicePhysical);
@@ -1619,13 +1631,8 @@ sub processOcmbChipAndChildren
     # (target type SYS).
     my $ocmbPosPerSystem = $targetObj->getAttribute($ddimmParent, "ORDINAL_ID");
 
-    # Use the OCMB's position per system to calculate the OCMB's position per
-    # parent.  This is done by taking the modulo of the OCMB's position per
-    # system against the maximum instance per parent.
-    my $ocmbPosPerParent = $ocmbPosPerSystem % getMaxInstPerParent($type);
-
     # Get the FAPI_NAME by using the data gathered above.
-    my $ocmbFapiName = $targetObj->getFapiName($type, $nodeParentPos, $ocmbPosPerSystem);
+    my $ocmbFapiName = $targetObj->getFapiName($type, $nodeParentPos, $ocmbPosPerNode);
 
     # Take advantage of previous work done on the DDIMMs.  Use the parent DDIMM's
     # affinity path for our self, but remove trailing parts we don't want/need.
@@ -1641,6 +1648,8 @@ sub processOcmbChipAndChildren
     $targetObj->setAttribute($target, "POSITION",      $ocmbId);
     $targetObj->setAttribute($target, "FAPI_POS",      $ocmbPosPerSystem);
     $targetObj->setAttribute($target, "FAPI_NAME",     $ocmbFapiName);
+    $targetObj->setAttribute($target, "FAPINAME_NODE", $nodeParentPos);
+    $targetObj->setAttribute($target, "FAPINAME_POS",  $ocmbPosPerNode);
     $targetObj->setAttribute($target, "AFFINITY_PATH", $ocmbAffinity);
     $targetObj->setAttribute($target, "PHYS_PATH",     $ocmbPhysical);
 
@@ -1724,7 +1733,7 @@ sub processMemPort
 
     # Get the FAPI_NAME by using the data gathered above.
     my $chipPos = 0; # The chip position for MEM_PORT is 0
-    my $memPortFapiName = $targetObj->getFapiName($type, $nodeParentPos, $chipPos, $memPortPosPerSystem);
+    my $memPortFapiName = $targetObj->getFapiName($type, $nodeParentPos, $chipPos, $memPortPosPerNode);
 
     # Take advantage of previous work done on the DDIMMs.  Use the parent DDIMM's
     # affinity/physical path for our self and append the mem_port to the end.
@@ -1735,6 +1744,9 @@ sub processMemPort
     $targetObj->setHuid($target, $sysParentPos, $nodeParentPos, $memPortPosPerNode);
     $targetObj->setAttribute($target, "FAPI_POS",      $memPortPosPerSystem);
     $targetObj->setAttribute($target, "FAPI_NAME",     $memPortFapiName);
+    $targetObj->setAttribute($target, "FAPINAME_NODE", $nodeParentPos);
+    $targetObj->setAttribute($target, "FAPINAME_POS",  $memPortPosPerNode);
+    $targetObj->setAttribute($target, "FAPINAME_UNIT", $memPortPosPerParent);
     $targetObj->setAttribute($target, "REL_POS",       $memPortPosPerParent);
     $targetObj->setAttribute($target, "AFFINITY_PATH", $memPortAffinity);
     $targetObj->setAttribute($target, "PHYS_PATH",     $memPortPhysical);
@@ -2011,22 +2023,20 @@ sub iterateOverChiplets
                 my $unit_type = $targetObj->getType($child);
 
                 # System XML has some sensor target as hidden children
-                # of targets. We don't care for sensors in this function nor
-                # for the XBUS.
+                # of targets. We don't care for sensors in this function.
                 # These can be avoided with this conditional.
                 if ($unit_type ne "PCI" && $unit_type ne "NA" &&
                     $unit_type ne "FSI" && $unit_type ne "PSI" &&
                     $unit_type ne "SYSREFCLKENDPT" &&
                     $unit_type ne "PCICLKENDPT"    &&
-                    $unit_type ne "LPCREFCLKENDPT" &&
-                    $unit_type ne "XBUS")
+                    $unit_type ne "LPCREFCLKENDPT")
                 {
                     #set common attrs for child
                     setCommonAttrForChiplet($targetObj, $child,
                                             $sys, $node, $proc);
 
                     # Mark this target as processed
-                    markTargetAsProcessed($targetObj, $target);
+                    markTargetAsProcessed($targetObj, $child);
 
                     iterateOverChiplets($targetObj, $child, $sys, $node, $proc);
                 } # end if ($unit_type ne "PCI" && ...
@@ -2054,6 +2064,34 @@ sub iterateOverChiplets
 } # end sub iterateOverChiplets
 
 #--------------------------------------------------
+# @brief Get the unit ID for the given split SMP link target
+#
+# @param[in] $instanceName - Instance name of the target
+# @return                  - The unit number for the split SMP link target (0 or 1)
+#--------------------------------------------------
+sub splitSmpLinkUnitNumber
+{
+    my ($instanceName) = @_;
+    my $unit;
+    my $unitLetter = lc(substr($instanceName, -1, 1));
+
+    if ($unitLetter eq 'a')
+    {
+        $unit = 0;
+    }
+    elsif ($unitLetter eq 'b')
+    {
+        $unit = 1;
+    }
+    else
+    {
+        die "Can't parse instance name '$instanceName' for split SMP link unit number";
+    }
+
+    return $unit;
+}
+
+#--------------------------------------------------
 # @brief Set a list of common attributes for the given target
 #
 # @detail The attributes set for given target are CHIPLET_ID, ORDINAL_ID,
@@ -2076,6 +2114,8 @@ sub setCommonAttrForChiplet
 
     my $instanceName = $targetObj->getInstanceName($target);
     my $targetType  = $targetObj->getType($target);
+    my $wasXbus = $targetType eq 'XBUS';
+
     # Change SMPGROUP type from ABUS to SMPGROUP
     # Need this for naming purposes
     # If instance name is groupA or groupB
@@ -2104,15 +2144,16 @@ sub setCommonAttrForChiplet
     my $targetPos = $targetObj->getAttribute($target, "CHIP_UNIT");
     if ($targetType eq "SMPGROUP")
     {
-        # Get CHIP_UNIT of IOHS parent
+        # Set CHIPLET_ID of SMPGROUP
         my $iohsParent = $targetObj->findParentByType($target, "IOHS");
+        my $iohsChipletId = $targetObj->getAttribute($iohsParent, 'CHIPLET_ID');
+        $targetObj->setAttribute($target, 'CHIPLET_ID', $iohsChipletId);
+
+        # Set CHIP_UNIT of SMPGROUP
         my $iohsChipUnit = $targetObj->getAttribute($iohsParent, "CHIP_UNIT");
-        my $smpUnit = 1;
-        if (index($instanceName, "groupA") != -1)
-        {
-            $smpUnit = 0; # found groupA in instanceName
-        }
-        $targetPos = 2 * $iohsChipUnit + $smpUnit;
+        my $smpUnit = splitSmpLinkUnitNumber($instanceName);
+
+        $targetPos = getMaxInstPerParent('SMPGROUP') * $iohsChipUnit + $smpUnit;
         $targetObj->setAttribute($target, "CHIP_UNIT", $targetPos);
     }
 
@@ -2153,17 +2194,22 @@ sub setCommonAttrForChiplet
     my $targetAffinity = "$parentAffinity/" . lc $targetType . "-$perParentNumValue";
     my $targetPhysical = "$parentPhysical/" . lc $targetType . "-$perParentNumValue";
 
+    my $chipunit = $targetObj->getAttribute($target, "CHIP_UNIT");
+
     # Now that we collected all the data we need, set some target attributes
     $targetObj->setHuid($target, $sysPos, $nodePos, $perProcNumValue);
     $targetObj->setAttribute($target, "ORDINAL_ID",    $ordinalId);
     $targetObj->setAttribute($target, "FAPI_POS",      $ordinalId);
     $targetObj->setAttribute($target, "FAPI_NAME",     $fapiName);
+    $targetObj->setAttribute($target, "FAPINAME_NODE", $nodePos);
+    $targetObj->setAttribute($target, "FAPINAME_POS",  $procPos);
+    $targetObj->setAttribute($target, "FAPINAME_UNIT", $chipunit);
     $targetObj->setAttribute($target, "REL_POS",       $perParentNumValue);
-    # Remove abus from smpgroup affinity and physical path
+    # Remove abus/xbus from smpgroup affinity and physical path
     if ($targetType eq "SMPGROUP")
     {
-        $targetPhysical =~ s/abus-\d+\///;
-        $targetAffinity =~ s/abus-\d+\///;
+        $targetPhysical =~ s/[ax]bus-\d+\///;
+        $targetAffinity =~ s/[ax]bus-\d+\///;
     }
     $targetObj->setAttribute($target, "AFFINITY_PATH", $targetAffinity);
     $targetObj->setAttribute($target, "PHYS_PATH",     $targetPhysical);
@@ -2175,8 +2221,7 @@ sub setCommonAttrForChiplet
     if ($targetType eq "PERV")
     {
         #The chiplet_id can simply be set from the CHIP_UNIT value
-        my $chiplet_id = $targetObj->getAttribute($target, "CHIP_UNIT");
-        my $value = sprintf("0x%0.2X", $chiplet_id);
+        my $value = sprintf("0x%0.2X", $chipunit);
         $targetObj->setAttribute($target, "CHIPLET_ID", $value);
     }
 
@@ -2196,7 +2241,7 @@ sub setCommonAttrForChiplet
 
     # Save this target for retrieval later when printing the xml (sub printXML)
     # TODO RTC: 245730 Remove this check when MRW fixes typing of SMPGROUP
-    if ($targetType ne "ABUS")
+    if ($targetType ne "ABUS" && $targetType ne "XBUS" && !$wasXbus)
     {
         push(@{$targetObj->{targeting}
             ->{SYS}[$sysPos]{NODES}[$nodePos]{PROCS}[$procPos]{$targetType}},
@@ -3372,13 +3417,27 @@ sub postProcessIohs
     # target and process *all* bus connections of type SMPA and SMPX .
     if ($targetObj->{system_config} eq "w")
     {
-        # Iterate over the children looking for ABUS
+        # Iterate over the children looking for ABUS/XBUS
         foreach my $child (@{ $targetObj->getTargetChildren($target) })
         {
             my $childType = $targetObj->getType($child);
             if ($childType eq "XBUS")
             {
-                processSmpX($targetObj, $child, $target);
+                my $groups = $targetObj->getTargetChildren($child);
+
+                if (defined $groups)
+                {
+                    foreach my $group (@{ $groups })
+                    {
+                        processSmpX($targetObj, $group, $target);
+                    }
+                }
+                else
+                {
+                    # This is needed for backwards compatibility with
+                    # the old SMP hierarchy for Denali
+                    processSmpX($targetObj, $child, $target);
+                }
             }
             elsif ($childType eq "ABUS")
             {
@@ -3418,7 +3477,21 @@ sub postProcessIohs
                 my $childType = $targetObj->getType($child);
                 if ($childType eq "XBUS")
                 {
-                    processSmpX($targetObj, $child, $target);
+                    my $groups = $targetObj->getTargetChildren($child);
+
+                    if (defined $groups)
+                    {
+                        foreach my $group (@{ $groups })
+                        {
+                            processSmpX($targetObj, $group, $target);
+                        }
+                    }
+                    else
+                    {
+                        # This is needed for backwards compatibility with
+                        # the old SMP hierarchy for Denali
+                        processSmpX($targetObj, $child, $target);
+                    }
                 }
             } # foreach my $child (@{ $targetObj->getTargetChildren($target) })
         } # end if ($iohsConfigMode eq "SMPA") ... elseif ...
@@ -3664,32 +3737,29 @@ sub setCommonBusConfigAttributes
     chop($busSrcPath);
     chop($busDestPath);
 
-    # Save off abus level for use later
-    my $busSrcCopy = $busSrcPath;
-    my $busDestCopy = $busDestPath;
     my $type = $targetObj->getType($target);
     my $abusSrc = 0;
     my $abusDest = 0;
     if ($type eq "SMPGROUP")
     {
-        if ($busSrcCopy !~ s/(abus.*)//g)
+        if ($busSrcPath !~ /([ax]bus.*)/)
         {
             select()->flush(); # flush buffer before spewing out error message
-            die "MRW is not as expected when finding ABUS src: $busSrcPath";
+            die "MRW is not as expected when finding ABUS or XBUS src: $busSrcPath";
         }
         $abusSrc = $1;
 
-        if ($busDestCopy !~ s/(abus.*)//g)
+        if ($busDestPath !~ /([ax]bus.*)/g)
         {
             select()->flush(); # flush buffer before spawning out error message
-            die "MRW is not as expected when finding ABUS dest: $busDestPath";
+            die "MRW is not as expected when finding ABUS or XBUS dest: $busDestPath";
         }
         $abusDest = $1;
     }
 
-    # SMPA has one more level of indirection, remove it
-    $busSrcPath =~ s/\/abus.*//g;
-    $busDestPath =~ s/\/abus.*//g;
+    # SMPA/SMPX has one more level of indirection, remove it
+    $busSrcPath =~ s/\/[ax]bus.*//g;
+    $busDestPath =~ s/\/[ax]bus.*//g;
 
     # Sanity check. The parent target paths should be made up of the source
     # path. If not, then there is an issue with the MRW or Targets.pm
@@ -3721,23 +3791,27 @@ sub setCommonBusConfigAttributes
         # Set up paths for smpgroup
         if ($type eq "SMPGROUP")
         {
-            # Append smpgroup to the bus target by extracting out groupA/groupB
-            my $targetCopy = $target;
-            if ($targetCopy !~ s/(group.*)//g)
-            {
-                select()->flush(); # flush buffer before spewing out error message
-                die "MRW is not as expected when finding ABUS";
-            }
-            my $smpgroup = $1;
+            my $srcSmpgroup = $busConnection->{source_target};
+            my $destSmpgroup = $busConnection->{dest_target};
 
-            $busSrcTargetCopy .= "/$abusSrc/$smpgroup";
-            $busDestTargetCopy .= "/$abusDest/$smpgroup";
+            $busSrcTargetCopy .= "/$abusSrc/$srcSmpgroup";
+            $busDestTargetCopy .= "/$abusDest/$destSmpgroup";
 
             my $busSrcHuid = $targetObj->getAttribute($busSrcTargetCopy, "HUID");
             my $busSrcPhysicalPath = $targetObj->getAttribute($busSrcTargetCopy, "PHYS_PATH");
 
             my $busDestHuid = $targetObj->getAttribute($busDestTargetCopy, "HUID");
             my $busDestPhysicalPath = $targetObj->getAttribute($busDestTargetCopy, "PHYS_PATH");
+
+            # The MRWs contain four half-link targets and "fills out" at most two. Hostboot only
+            # represents two half-link targets, and chooses the two ABUS MRW targets (groupA and
+            # groupB) to become the SMPGROUP Hostboot targets. When the MRW sets up the XBUS MRW
+            # targets (groupxA and groupxB), we redirect the attributes to the ABUS MRW targets
+            # with these four lines, so that they are reflected on the Hostboot targets.
+            $busSrcTargetCopy =~ s/groupx/group/;
+            $busDestTargetCopy =~ s/groupx/group/;
+            $busSrcTargetCopy =~ s/xbus/abus/;
+            $busDestTargetCopy =~ s/xbus/abus/;
 
             # Set attributes for the target ends
             $targetObj->setAttribute($busSrcTargetCopy, "PEER_TARGET", $busDestPhysicalPath);
