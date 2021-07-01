@@ -51,6 +51,7 @@ my %PARENT_PERVASIVE_OFFSET =
     OMIC  => 12,
     PAUC  => 16,
     IOHS  => 24,
+    SMPGROUP => 24,
     PAU   => 16,
 
     NMMU  => 2,
@@ -5221,7 +5222,7 @@ sub configureParentPervasiveData
 
     # For these targets, the parent pervasive increments based on the
     # parent, in the lineage, that is a child of the target type PROC.
-    my @specialCaseTargetTypes = qw (CORE FC PAU PHB MCC OMI OMIC);
+    my @specialCaseTargetTypes = qw (CORE FC PAU PHB MCC OMI OMIC SMPGROUP);
     foreach my $targetType (@specialCaseTargetTypes)
     {
         my $maxInst = getMaxInstPerProc($targetType);
@@ -5264,6 +5265,11 @@ sub configureParentPervasiveData
                 # for said target to the MC target.
                 my $TARGET_PER_MC = getMaxInstPerProc($targetType)/getMaxInstPerProc("MC");
                 $value += ($targetTypeValue/$TARGET_PER_MC);
+            }
+            elsif ($targetType eq 'SMPGROUP')
+            {
+                my $TARGET_PER_IOHS = getMaxInstPerParent('SMPGROUP');
+                $value += $targetTypeValue / $TARGET_PER_IOHS;
             }
             else
             {
