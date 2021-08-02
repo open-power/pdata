@@ -93,6 +93,7 @@ struct dtm_node *dtm_find_node_by_compatible(struct dtm_node *root, const char *
 
 struct match_by_path {
 	const char *path;
+	size_t len;
 	struct dtm_node *match;
 };
 
@@ -100,25 +101,28 @@ static int match_node_by_path(struct dtm_node *node, void *priv)
 {
 	struct match_by_path *state = (struct match_by_path *)priv;
 	char *path;
+	size_t len;
+	int ret = 0;
 
 	path = dtm_node_path(node);
 	if (!path)
 		return 0;
 
-	if (strcmp(path, state->path) == 0) {
+	len = strlen(path);
+	if (len == state->len && strcmp(path, state->path) == 0) {
 		state->match = node;
-		free(path);
-		return 1;
+		ret = 1;
 	}
 
 	free(path);
-	return 0;
+	return ret;
 }
 
 struct dtm_node *dtm_find_node_by_path(struct dtm_node *root, const char *path)
 {
 	struct match_by_path state = {
 		.path = path,
+		.len = strlen(path),
 	};
 	int ret;
 
