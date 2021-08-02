@@ -4,12 +4,14 @@ AM_MAKEFLAGS = --no-print-directory
 AM_CFLAGS = -Wall -Werror $(ENDIAN_FLAG)
 
 lib_LTLIBRARIES =
+include_HEADERS =
 datadir = ${datarootdir}/pdata
 data_DATA =
 CLEANFILES =
 
 if BUILD_TOOLS
-lib_LTLIBRARIES += libfdt-traverse.la libfdt-attr.la
+lib_LTLIBRARIES += libfdt-traverse.la libfdt-attr.la libdtree.la
+include_HEADERS += libdtree/dtree.h
 bin_PROGRAMS = attributes
 noinst_LTLIBRARIES = libdtm.la
 endif
@@ -19,7 +21,7 @@ if BUILD_ATTR_API
 pkgconfiglibdir = ${libdir}/pkgconfig
 pkgconfiglib_DATA = libdt-api/libdt-api.pc
 lib_LTLIBRARIES += libdt-api.la
-include_HEADERS = attributes_info.H libdt-api/dt_api.H
+include_HEADERS += attributes_info.H libdt-api/dt_api.H
 data_DATA += attributes_info.db
 data_DATA += data/$(CHIP)/preserved_attrs_list
 data_DATA += data/$(CHIP)/reinit_devtree_attrs_list
@@ -56,6 +58,27 @@ libdtm_la_SOURCES = \
 	libdtm/dtm_traverse.c \
 	libdtm/dtm_tree.c
 libdtm_la_LIBADD = libfdt-traverse.la libfdt-attr.la
+
+libdtree_la_SOURCES = \
+	libdtree/dtree.h \
+	libdtree/dtree_attr.c \
+	libdtree/dtree_attr.h \
+	libdtree/dtree_attr_list.c \
+	libdtree/dtree_attr_list.h \
+	libdtree/dtree_cronus.c \
+	libdtree/dtree_cronus.h \
+	libdtree/dtree_cronus_format.c \
+	libdtree/dtree_cronus_target.c \
+	libdtree/dtree_dump.h \
+	libdtree/dtree_dump_format.c \
+	libdtree/dtree_export.c \
+	libdtree/dtree_import.c \
+	libdtree/dtree_infodb.c \
+	libdtree/dtree_infodb.h \
+	libdtree/dtree_util.c \
+	libdtree/dtree_util.h
+libdtree_la_LIBADD = libdtm.la
+libdtree_la_CPPFLAGS = -I$(srcdir)/libdtm
 
 attributes_SOURCES = \
 	attribute/attribute.c \
