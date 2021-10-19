@@ -247,6 +247,9 @@
         <parent>unit</parent>
     </targetType>
     <targetType>
+        <attribute>
+            <id>POSITION</id>
+        </attribute>
         <id>chip-SI5332</id>
         <parent>base</parent>
     </targetType>

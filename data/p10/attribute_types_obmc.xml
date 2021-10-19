@@ -711,4 +711,15 @@
         </simpleType>
     </attribute>
 
+    <attribute>
+        <description>Position of target relative to node</description>
+        <id>POSITION</id>
+        <persistency>non-volatile</persistency>
+        <readable></readable>
+        <simpleType>
+            <uint16_t>
+                <default>0</default>
+            </uint16_t>
+        </simpleType>
+    </attribute>
 </attributes>
