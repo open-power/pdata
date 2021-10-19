@@ -246,4 +246,8 @@
         <id>unit-obus-smpgroup</id>
         <parent>unit</parent>
     </targetType>
+    <targetType>
+        <id>chip-SI5332</id>
+        <parent>base</parent>
+    </targetType>
 </attributes>

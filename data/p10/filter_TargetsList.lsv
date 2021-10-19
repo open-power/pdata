@@ -31,3 +31,5 @@ unit-nx-power10
 unit-occ-power10
 # TPM target
 chip-NPCT750AAC
+# OSCREFCLK target
+chip-SI5332
