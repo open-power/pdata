@@ -55,7 +55,7 @@ struct dtm_property *dtm_prop_copy(struct dtm_property *prop);
 
 struct dtm_node *dtm_node_new(const char *name);
 void dtm_node_free(struct dtm_node *node);
-struct dtm_node *dtm_node_copy(struct dtm_node *node);
+struct dtm_node *dtm_node_copy(const struct dtm_node *node);
 struct dtm_node *dtm_node_next_child(struct dtm_node *node, struct dtm_node *prev);
 struct dtm_property *dtm_node_next_property(struct dtm_node *node, struct dtm_property *prev);
 

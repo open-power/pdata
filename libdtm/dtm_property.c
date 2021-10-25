@@ -63,12 +63,12 @@ struct dtm_property *dtm_prop_copy(struct dtm_property *prop)
 	return dtm_prop_new(prop->name, prop->value, prop->len);
 }
 
-const char *dtm_prop_name(struct dtm_property *prop)
+const char *dtm_prop_name(const struct dtm_property *prop)
 {
 	return prop->name;
 }
 
-const void *dtm_prop_value(struct dtm_property *prop, int *value_len)
+const void *dtm_prop_value(const struct dtm_property *prop, int *value_len)
 {
 	if (value_len)
 		*value_len = prop->len;
@@ -85,7 +85,7 @@ int dtm_prop_set_value(struct dtm_property *prop, uint8_t *value, int value_len)
 	return 0;
 }
 
-uint32_t dtm_prop_value_u32(struct dtm_property *prop)
+uint32_t dtm_prop_value_u32(const struct dtm_property *prop)
 {
 	uint32_t data;
 

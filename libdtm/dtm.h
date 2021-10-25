@@ -137,7 +137,7 @@ void dtm_tree_free(struct dtm_node *node);
  * @param[in] root  Root of the device tree
  * @return root node of copied tree, NULL on failure
  */
-struct dtm_node *dtm_tree_copy(struct dtm_node *root);
+struct dtm_node *dtm_tree_copy(const struct dtm_node *root);
 
 /**
  * @brief Get name of a node
@@ -145,7 +145,7 @@ struct dtm_node *dtm_tree_copy(struct dtm_node *root);
  * @param[in] node  Node of a device tree
  * @return name of the node
  */
-const char *dtm_node_name(struct dtm_node *node);
+const char *dtm_node_name(const struct dtm_node *node);
 
 /**
  * @brief Add a property to a node
@@ -165,7 +165,7 @@ int dtm_node_add_property(struct dtm_node *node, const char *name, void *value, 
  * @param[in] name  Name of the property
  * @return property if found, NULL if not found
  */
-struct dtm_property *dtm_node_get_property(struct dtm_node *node, const char *name);
+struct dtm_property *dtm_node_get_property(const struct dtm_node *node, const char *name);
 
 /**
  * @brief Get the device tree path of a node
@@ -173,7 +173,7 @@ struct dtm_property *dtm_node_get_property(struct dtm_node *node, const char *na
  * @param[in] node  A node
  * @return device tree path of the node (as allocated string), NULL on error
  */
-char *dtm_node_path(struct dtm_node *node);
+char *dtm_node_path(const struct dtm_node *node);
 
 /**
  * @brief Get the index of a node
@@ -187,7 +187,7 @@ char *dtm_node_path(struct dtm_node *node);
  * @param[in] node  A node
  * @return index of the node, -1 on failure
  */
-int dtm_node_index(struct dtm_node *node);
+int dtm_node_index(const struct dtm_node *node);
 
 /**
  * @brief Get the parent of a node
@@ -195,7 +195,7 @@ int dtm_node_index(struct dtm_node *node);
  * @param[in] node  A node
  * @return parent node, or NULL if node is the root node
  */
-struct dtm_node *dtm_node_parent(struct dtm_node *node);
+struct dtm_node *dtm_node_parent(const struct dtm_node *node);
 
 /**
  * @brief Get the name of the property
@@ -203,7 +203,7 @@ struct dtm_node *dtm_node_parent(struct dtm_node *node);
  * @param[in] prop  A property
  * @return name of the property
  */
-const char *dtm_prop_name(struct dtm_property *prop);
+const char *dtm_prop_name(const struct dtm_property *prop);
 
 /**
  * @brief Get the value of the property
@@ -212,7 +212,7 @@ const char *dtm_prop_name(struct dtm_property *prop);
  * @param[out] value_len  Length of the property
  * @return pointer to the value of the property
  */
-const void *dtm_prop_value(struct dtm_property *prop, int *value_len);
+const void *dtm_prop_value(const struct dtm_property *prop, int *value_len);
 
 /**
  * @brief Set the value of the property
@@ -230,7 +230,7 @@ int dtm_prop_set_value(struct dtm_property *prop, uint8_t *value, int value_len)
  * @param[in] prop  A property
  * @return value of the integer property
  */
-uint32_t dtm_prop_value_u32(struct dtm_property *prop);
+uint32_t dtm_prop_value_u32(const struct dtm_property *prop);
 
 /**
  * @brief Traverse a device tree

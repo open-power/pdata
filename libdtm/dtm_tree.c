@@ -56,7 +56,7 @@ void dtm_tree_add_node(struct dtm_node *parent, struct dtm_node *child)
 	list_add_tail(&parent->children, &child->list);
 }
 
-static bool dtm_tree_level_copy(struct dtm_node *node, struct dtm_node *node_copy)
+static bool dtm_tree_level_copy(const struct dtm_node *node, struct dtm_node *node_copy)
 {
 	struct dtm_node *child = NULL;
 
@@ -77,7 +77,7 @@ static bool dtm_tree_level_copy(struct dtm_node *node, struct dtm_node *node_cop
 	return true;
 }
 
-struct dtm_node *dtm_tree_copy(struct dtm_node *root)
+struct dtm_node *dtm_tree_copy(const struct dtm_node *root)
 {
 	struct dtm_node *root_copy;
 

@@ -56,12 +56,12 @@ void dtm_node_free(struct dtm_node *node)
 	free(node);
 }
 
-const char *dtm_node_name(struct dtm_node *node)
+const char *dtm_node_name(const struct dtm_node *node)
 {
 	return node->name;
 }
 
-struct dtm_node *dtm_node_copy(struct dtm_node *node)
+struct dtm_node *dtm_node_copy(const struct dtm_node *node)
 {
 	struct dtm_node *node_copy;
 	struct dtm_property *prop = NULL, *prop_copy;
@@ -133,7 +133,7 @@ struct dtm_property *dtm_node_next_property(struct dtm_node *node, struct dtm_pr
 	return next;
 }
 
-struct dtm_property *dtm_node_get_property(struct dtm_node *node, const char *name)
+struct dtm_property *dtm_node_get_property(const struct dtm_node *node, const char *name)
 {
 	struct dtm_property *prop = NULL;
 
@@ -145,7 +145,7 @@ struct dtm_property *dtm_node_get_property(struct dtm_node *node, const char *na
 	return NULL;
 }
 
-static char *_dtm_node_path(struct dtm_node *node, int len)
+static char *_dtm_node_path(const struct dtm_node *node, int len)
 {
 	char *p;
 
@@ -171,12 +171,12 @@ static char *_dtm_node_path(struct dtm_node *node, int len)
 	return p;
 }
 
-char *dtm_node_path(struct dtm_node *node)
+char *dtm_node_path(const struct dtm_node *node)
 {
 	return _dtm_node_path(node, 1);
 }
 
-int dtm_node_index(struct dtm_node *node)
+int dtm_node_index(const struct dtm_node *node)
 {
 	struct dtm_property *prop;
 
@@ -190,7 +190,7 @@ int dtm_node_index(struct dtm_node *node)
 	return dtm_prop_value_u32(prop);
 }
 
-struct dtm_node *dtm_node_parent(struct dtm_node *node)
+struct dtm_node *dtm_node_parent(const struct dtm_node *node)
 {
 	return node->parent;
 }
