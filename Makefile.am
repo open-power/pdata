@@ -81,19 +81,8 @@ libdtree_la_LIBADD = libdtm.la
 libdtree_la_CPPFLAGS = -I$(srcdir)/libdtm
 
 attributes_SOURCES = \
-	attribute/old/attribute.c \
-	attribute/old/attribute.h \
-	attribute/old/attribute_db.c \
-	attribute/old/attribute_db.h \
-	attribute/old/attribute_format.c \
-	attribute/old/attribute_format.h \
-	attribute/old/attribute_list.c \
-	attribute/old/attribute_list.h \
-	attribute/old/attribute_target.c \
-	attribute/old/attribute_target.h \
-	attribute/old/attribute_util.c \
-	attribute/old/attribute_util.h
-attributes_LDADD = libdtm.la
+	attribute/attribute.c
+attributes_LDADD = libdtree.la
 attributes_LDFLAGS = -lm
 
 AUTO_GEN_V = $(AUTO_GEN_V_$(V))
