@@ -81,18 +81,18 @@ libdtree_la_LIBADD = libdtm.la
 libdtree_la_CPPFLAGS = -I$(srcdir)/libdtm
 
 attributes_SOURCES = \
-	attribute/attribute.c \
-	attribute/attribute.h \
-	attribute/attribute_db.c \
-	attribute/attribute_db.h \
-	attribute/attribute_format.c \
-	attribute/attribute_format.h \
-	attribute/attribute_list.c \
-	attribute/attribute_list.h \
-	attribute/attribute_target.c \
-	attribute/attribute_target.h \
-	attribute/attribute_util.c \
-	attribute/attribute_util.h
+	attribute/old/attribute.c \
+	attribute/old/attribute.h \
+	attribute/old/attribute_db.c \
+	attribute/old/attribute_db.h \
+	attribute/old/attribute_format.c \
+	attribute/old/attribute_format.h \
+	attribute/old/attribute_list.c \
+	attribute/old/attribute_list.h \
+	attribute/old/attribute_target.c \
+	attribute/old/attribute_target.h \
+	attribute/old/attribute_util.c \
+	attribute/old/attribute_util.h
 attributes_LDADD = libdtm.la
 attributes_LDFLAGS = -lm
 
