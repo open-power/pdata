@@ -22,6 +22,7 @@ lib_LTLIBRARIES += libdt-api.la
 include_HEADERS = attributes_info.H libdt-api/dt_api.H
 data_DATA += attributes_info.db
 data_DATA += data/$(CHIP)/preserved_attrs_list
+data_DATA += data/$(CHIP)/reinit_devtree_attrs_list
 CLEANFILES += attributes_info.H attributes_info.db
 endif
 
