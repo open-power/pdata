@@ -173,6 +173,9 @@ static int do_read_attr(const struct dtree_attr *attr, void *priv)
 {
 	struct do_read_state *state = (struct do_read_state *)priv;
 
+	if (!state->matched)
+		return 0;
+
 	if (strcmp(attr->name, state->attr_name) == 0) {
 		dtree_dump_print_attr_name(attr, stdout);
 		printf(" = ");
