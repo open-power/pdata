@@ -33,11 +33,11 @@ $ATTRIBUTES write $DTB1 $INFODB / ATTR_TEST4 0x1234567812345678
 
 echo "Modify attributes for proc0"
 $ATTRIBUTES write $DTB1 $INFODB /proc0 ATTR_TEST5 processor1
-$ATTRIBUTES write $DTB1 $INFODB /proc0 ATTR_TEST6 0xdeadbeef 1 0xdead 0x1122334455667788 0x11 0x11223344
+$ATTRIBUTES write $DTB1 $INFODB /proc0 ATTR_TEST6 0xdeadbeef 1 0xdead 0x11223344 0x55 0x6677
 
 echo "Modify attributes for proc1"
 $ATTRIBUTES write $DTB1 $INFODB /proc1 ATTR_TEST5 processor2
-$ATTRIBUTES write $DTB1 $INFODB /proc1 ATTR_TEST6 0xdeadbeef 1 0xbeef 0x1122334455667788 0x22 0x55667788
+$ATTRIBUTES write $DTB1 $INFODB /proc1 ATTR_TEST6 0xdeadbeef 1 0xbeef 0x12345678 0x12 0x1234
 
 echo "Export dtb"
 $ATTRIBUTES export $DTB1 $INFODB > $DUMP
