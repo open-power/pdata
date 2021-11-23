@@ -250,6 +250,15 @@
         <attribute>
             <id>POSITION</id>
         </attribute>
+        <attribute>
+            <id>I2C_ADDRESS</id>
+        </attribute>
+        <attribute>
+            <id>I2C_PORT</id>
+        </attribute>
+        <attribute>
+            <id>I2C_PARENT_PHYS_PATH</id>
+        </attribute>
         <id>chip-SI5332</id>
         <parent>base</parent>
     </targetType>

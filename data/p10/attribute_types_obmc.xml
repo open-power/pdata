@@ -722,4 +722,53 @@
             </uint16_t>
         </simpleType>
     </attribute>
+
+    <attribute>
+        <description>The I2C Address of the target to use in the device tree
+            reg property. It can be added to target that wants under
+            the respective I2C device tree target.
+        </description>
+        <id>I2C_ADDRESS</id>
+        <persistency>non-volatile</persistency>
+        <readable></readable>
+        <notRequiredInDevTree></notRequiredInDevTree>
+        <simpleType>
+            <uint8_t>
+                <default>0</default>
+            </uint8_t>
+        </simpleType>
+    </attribute>
+
+    <attribute>
+        <description>The I2C Port of the target to use in the device tree along
+            with I2C device tree target node name. For example, i2c-N.
+            It can be added to target that wants under the respective I2C
+            device tree target.
+        </description>
+        <id>I2C_PORT</id>
+        <persistency>non-volatile</persistency>
+        <readable></readable>
+        <notRequiredInDevTree></notRequiredInDevTree>
+        <simpleType>
+            <uint8_t>
+                <default>0</default>
+            </uint8_t>
+        </simpleType>
+    </attribute>
+
+    <attribute>
+        <description>The I2C target parent physical path. Used for adding the
+            I2C target under the respective parent. It can be added to target
+            that wants under the respective I2C device tree target.
+        </description>
+        <id>I2C_PARENT_PHYS_PATH</id>
+        <persistency>non-volatile</persistency>
+        <readable/>
+        <notRequiredInDevTree></notRequiredInDevTree>
+        <simpleType>
+            <string>
+                <sizeInclNull>64</sizeInclNull>
+            </string>
+        </simpleType>
+    </attribute>
 </attributes>

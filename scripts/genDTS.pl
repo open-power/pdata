@@ -49,6 +49,9 @@ struct Node => {
     # DTS Property
     compatible      => '$',
     index           => '$',
+    address_cells   => '$',
+    size_cells      => '$',
+    reg             => '$',
     attributeList   => '%',
 };
 
@@ -240,6 +243,40 @@ sub prepareDeviceTreeHierarchy
 
             $pervasivePath = ${$mrwTargetList{$MRWTargetID}->targetAttrList}{'PARENT_PERVASIVE'}->value;
             $finalPath = $pervasivePath.substr($physPath, rindex($pervasivePath, "/"), length($physPath) - rindex($pervasivePath, "/") );
+        }
+
+        # If the I2C_PARENT_PHYS_PATH attribute is found for a particular
+        # target then, that target need to add under the respective I2C
+        # target along with its parent.
+        # For example, the OSCREFCLK (chip-SI5332) target need to be present
+        # as "bmcN -> i2c-N ->oscrefclkN" in the device tree to perform
+        # the i2c read and write operation on the OSCREFCLK target.
+        if ( exists ${$mrwTargetList{$MRWTargetID}->targetAttrList}{'I2C_PARENT_PHYS_PATH'} )
+        {
+            # E.g. :
+            # $i2cParentPhysPath = "physical:sys-0/node-0/bmc-0";
+            # $physPath = "physical:sys-0/node-0/oscrefclk-0";
+            # $finalPath => physical:sys-0/node-0/bmc-0/i2c-$i2cPort/oscrefclk-0
+
+            my $i2cParentPhysPath = ${$mrwTargetList{$MRWTargetID}->targetAttrList}{'I2C_PARENT_PHYS_PATH'}->value;
+            my $i2cPort = ${$mrwTargetList{$MRWTargetID}->targetAttrList}{'I2C_PORT'}->value;
+
+            my $commonPathElePos;
+            for my $i (0..length($i2cParentPhysPath) - 1)
+            {
+                my $a = substr($i2cParentPhysPath, $i, 1);
+                my $b = substr($physPath, $i, 1);
+                if ($a ne $b)
+                {
+                    $commonPathElePos = $i - 1;
+                    last;
+                }
+            }
+
+            # The I2C_PORT needs to decrement by one since the i2c instance
+            # id will start from "0".
+            $finalPath = $i2cParentPhysPath . "/i2c-" . ($i2cPort - 1);
+            $finalPath .= substr($physPath, $commonPathElePos);
         }
 
         # Adding pervasive path for "unit-fc-*" targets based on CHIPLET_ID attribute,
@@ -443,6 +480,32 @@ sub processTargetPath
         my $index = substr($TargetID, index($TargetID, "pib") + 3);
         $lastNode->index($index);
     }
+
+    # Add the reg property for the target if that contains "I2C_ADDRESS"
+    # attribute to perform the i2c read and write operation on this target.
+    if (exists ${$lastNode->attributeList}{"I2C_ADDRESS"})
+    {
+        $lastNode->reg(${$lastNode->attributeList}{"I2C_ADDRESS"}->value);
+
+        # Get the parent target to add address and size cells properties
+        # in the device tree since added the reg property so these properties
+        # are required in the parent target to perform the address translation.
+        my @parentPathEleKey = @splittedPath;
+        pop @parentPathEleKey;
+
+        my $parentNode;
+        $refDTreeNodesList = \%headOfDTree;
+        foreach my $key ( @parentPathEleKey )
+        {
+            $parentNode = $refDTreeNodesList -> { $key };
+            $refDTreeNodesList = \%{ $refDTreeNodesList -> { $key } -> Node::childNodes } ;
+        }
+
+        # Adding address and size cells value as "0x01" and "0x00" respectively
+        # since the I2C_ADDRESS attribute is uint8 type
+        $parentNode->address_cells(0x01);
+        $parentNode->size_cells(0x00);
+    }
 }
 
 sub createNode
@@ -452,8 +515,11 @@ sub createNode
     $node->index(substr($node->nodeName, index($node->nodeName, '-') + 1));
     $node->compatible("");
     $node->attributeList({});
-	$node->childNodes({});
-	return ($node);
+    $node->childNodes({});
+    $node->address_cells("");
+    $node->size_cells("");
+    $node->reg("");
+    return ($node);
 }
 
 sub createDTSFile
@@ -476,66 +542,104 @@ sub createDTSFile
 
 sub addNodesIntoDTSFile
 {
-	my $nodes = $_[0];
-    my $dontAddNode = 0;
+    my $nodes = $_[0];
+
+    my $addDevTreeNode = 1;
     my $addCompProp = 1;
+    my $addIndexProp = 1;
 
     foreach my $key ( sort (keys %{$nodes}))
     {
-        # Not adding sys and node target as per pdbg expectaion
+        # Don't add device tree node for below targets as per pdbg expectaion
         if ( $key =~ m/sys/ or $key =~ m/node/ )
         {
-            $dontAddNode = 1;
+            $addDevTreeNode = 0;
         }
 
-        # Not adding compatible property for sys and fsi as per pdbg expectaion
-        if ( $key =~ m/sys/ or $key =~ m/fsi/ )
+        # Don't add compatible property for below targets as per pdbg expectaion
+        if ( $key =~ m/sys/ or $key =~ m/node/ or $key =~ m/fsi/ or
+             $key =~ m/pib/ or $key =~ m/i2c/ )
         {
             $addCompProp = 0;
         }
 
+        # Don't add index property for below targets as per pdbg expectaion
+        if ( $key =~ m/sys/ or $key =~ m/node/ or $key =~ m/i2c/ )
+        {
+            $addIndexProp = 0;
+        }
+
         my $nodeName = $nodes -> {$key} -> Node::nodeName;
 
-        # Removing "-" in node name as per pdbg expectation
-        $nodeName =~ s/-//g;
+        # Removing "-" in the node name as per pdbg expectation except
+        # below targets
+        if (!($nodeName =~ m/i2c/))
+        {
+            $nodeName =~ s/-//g;
+        }
 
-        print {$dtsFHandle} "\n$nodeName {\n" if $dontAddNode ne 1;
-        my $index = $nodes -> {$key} -> Node::index;
+        print {$dtsFHandle} "\n$nodeName {\n" if $addDevTreeNode eq 1;
 
-        addTargetDataIntoDTSFile($nodes -> {$key} -> Node::compatible, $nodes -> {$key} -> Node::index, \%{$nodes -> {$key} -> Node::attributeList}, $dontAddNode, $addCompProp);
+        addTargetDataIntoDTSFile($nodes->{$key}, $addIndexProp, $addCompProp);
         addNodesIntoDTSFile($nodes -> {$key} -> Node::childNodes);
-        print {$dtsFHandle} "};\n" if $dontAddNode ne 1;
+
+        print {$dtsFHandle} "};\n" if $addDevTreeNode eq 1;
     }
 }
 
 sub addTargetDataIntoDTSFile
 {
-    my $compatible = $_[0];
-	my $nodeIndex = $_[1];
-    my %attributeList = %{$_[2]};
-    my $indexReqToAdd = $_[3];
-    my $compPropReqAdd = $_[4];
+    my $devTreeNode = $_[0];
+    my $indexReqToAdd = $_[1];
+    my $compPropReqAdd = $_[2];
+
+    my %attributeList = %{$devTreeNode->attributeList};
 
     if ( $compPropReqAdd eq "1" )
     {
         # Add "compatible" property
         my $pdbgCompPropertyVal;
-        if ( exists $pdbgCompPropMapList{$compatible} )
+        if ( exists $pdbgCompPropMapList{$devTreeNode->compatible} )
         {
-            $pdbgCompPropertyVal = $pdbgCompPropMapList{$compatible};
+            $pdbgCompPropertyVal = $pdbgCompPropMapList{$devTreeNode->compatible};
             # Not adding double quotes if present, to support list of compatible property
             $pdbgCompPropertyVal = "\"".$pdbgCompPropertyVal."\"" if !( $pdbgCompPropertyVal =~ m/"/);
         }
         else # If not found using mrw target type name only
         {
-            $pdbgCompPropertyVal = "\"".$compatible."\"";
+            $pdbgCompPropertyVal = "\"".$devTreeNode->compatible."\"";
         }
 
         print {$dtsFHandle} "compatible = $pdbgCompPropertyVal;\n" if $pdbgCompPropertyVal ne "\"\""; # not adding empty
     }
-    # Add index
-	my $nodeIndexHex = sprintf("<0x%02x>", $nodeIndex);
-	print {$dtsFHandle} "index = $nodeIndexHex;\n" if $indexReqToAdd ne 1;
+
+    if ($devTreeNode->reg ne "")
+    {
+        # Add reg property
+        my $regPropVal = $devTreeNode->reg;
+        print {$dtsFHandle} "reg = <$regPropVal>;\n";
+    }
+
+    if ($devTreeNode->address_cells ne "")
+    {
+        # Add "#address-cells" property
+        my $addrCellsVal = $devTreeNode->address_cells;
+        print {$dtsFHandle} "#address-cells = <$addrCellsVal>;\n";
+    }
+
+    if ($devTreeNode->size_cells ne "")
+    {
+        # Add "#size-cells" property
+        my $sizeCellsVal = $devTreeNode->size_cells;
+        print {$dtsFHandle} "#size-cells = <$sizeCellsVal>;\n";
+    }
+
+    if ($indexReqToAdd eq 1)
+    {
+        # Add index property
+        my $nodeIndexHex = sprintf("<0x%02x>", $devTreeNode->index);
+        print {$dtsFHandle} "index = $nodeIndexHex;\n";
+    }
 
     # Adding PHYS_DEV_PATH and PHYS_BIN_PATH attributes value by using PHYS_PATH attribute.
     # because, PHYS_PATH type is class which is not supported in device tree.
@@ -569,7 +673,7 @@ sub addTargetDataIntoDTSFile
         # it may not be required to specific targets.
         # Ex: Non-FAPI targets having FAPI_POS and REL_POS and those attributes
         # are specific to fapi targets.
-        if ( !exists ${$fapiTargetList{$compatible}->targetAttrList}{$AttrID} )
+        if ( !exists ${$fapiTargetList{$devTreeNode->compatible}->targetAttrList}{$AttrID} )
         {
             next;
         }

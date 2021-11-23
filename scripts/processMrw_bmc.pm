@@ -78,6 +78,41 @@ sub buildBMCAffinity
 
             # OSCREFCLK is Non-FAPI target
             $targetObj->setAttribute($target,"FAPI_NAME", "NA");
+
+            # Add I2C_PORT, I2C_ADDRESS, and I2C_PARENT_PHYS_PATH attributes
+            # based on the I2C destination connection of the retrieved target.
+            # These attributes helps to add the retrieved target under
+            # the respective connected (via I2C) destination target in the
+            # device tree to perform the i2c read and write operation
+            # on the OSCREFCLK target.
+            # For example, bmc-0 -> i2c-0 -> oscrefclk-0.
+            my $destConn = $targetObj->findDestConnections($target, "I2C", "");
+            my @destConnList = @{$destConn->{CONN}};
+            my $numConnections = scalar @destConnList;
+
+            if ($numConnections != 1)
+            {
+                die "Incorrect number of OSCREFCLK I2C bus connection. Expected 1 and Found $numConnections";
+            }
+
+            my $i2c_port = $targetObj->getAttribute($destConnList[0]{SOURCE}, "I2C_PORT");
+            $targetObj->setAttribute($target, "I2C_PORT", $i2c_port);
+
+            my $i2c_addr = $targetObj->getAttribute($destConnList[0]{DEST}, "I2C_ADDRESS");
+            $targetObj->setAttribute($target, "I2C_ADDRESS", $i2c_addr);
+
+            # Found the connected BMC card from the source i2c path
+            my $src_parent = $destConnList[0]{SOURCE_PARENT};
+            while($targetObj->getType($src_parent) ne "BMC")
+            {
+                $src_parent = $targetObj->getTargetParent($src_parent);
+            }
+            if ($src_parent eq "")
+            {
+                die "Could not find the connected BMC from the source i2c bus connection: $destConnList[0]{SOURCE}\n";
+            }
+            my $src_parent_phys_path = $targetObj->getAttribute($src_parent, "PHYS_PATH");
+            $targetObj->setAttribute($target, "I2C_PARENT_PHYS_PATH", $src_parent_phys_path);
         }
     }
 }
