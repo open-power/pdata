@@ -557,6 +557,13 @@ sub addTargetDataIntoDTSFile
             next;
         }
 
+        # Don't add the attributes if that not required in the device tree
+        # attributes list.
+        if ($attributeDefList{$AttrID} -> AttributeDefinition::notRequiredInDevTree eq "1")
+        {
+            next;
+        }
+
         # Ignoring MRW Target attributes if not found in FAPI list
         # because, MRW Target having common attributes for all targets but,
         # it may not be required to specific targets.

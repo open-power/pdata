@@ -170,6 +170,12 @@ sub prepareMacros
     print {$AIHeaderFH} "*/\n";
     foreach my $attrID (sort (keys %attributeDefList) )
     {
+        # Don't add the attributes if that not required in the device tree
+        # attributes list.
+        if ($attributeDefList{$attrID} -> AttributeDefinition::notRequiredInDevTree eq "1")
+        {
+            next;
+        }
         my $attributeDefinition = AttributeDefinition->new();
         $attributeDefinition = $attributeDefList{ $attrID };
         my $isFAPIAttr = @{$attributeDefinition->hwpfToAttrMap};
@@ -211,6 +217,12 @@ sub prepareAttrsMetaData
 
     foreach my $attrID (sort (keys %attributeDefList) )
     {
+        # Don't add the attributes if that not required in the device tree
+        # attributes list.
+        if ($attributeDefList{$attrID} -> AttributeDefinition::notRequiredInDevTree eq "1")
+        {
+            next;
+        }
         my $attributeDefinition = AttributeDefinition->new();
         $attributeDefinition = $attributeDefList{ $attrID };
         if ( $attributeDefinition->datatype eq "simpleType" )
@@ -316,6 +328,14 @@ sub prepareAttrsTypeInfo
     print {$AIHeaderFH} "\t#define PACKED __attribute__((__packed__))\n\n";
     foreach my $attrID (sort (keys %attributeDefList) )
     {
+        # Don't add the attributes if that not required in the device tree
+        # attributes list.
+        if ($attributeDefList{$attrID} -> AttributeDefinition::notRequiredInDevTree eq "1")
+        {
+            next;
+        }
+
+        my $attributeDefinition = AttributeDefinition->new();
         my $attributeDefinition = AttributeDefinition->new();
         $attributeDefinition = $attributeDefList{ $attrID };
         if ( $attributeDefinition->datatype eq "simpleType" )

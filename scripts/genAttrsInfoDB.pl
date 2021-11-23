@@ -204,6 +204,13 @@ sub getInfoDBAttrsData
     my $index = 0;
     foreach my $attr (sort(keys %attributeDefList))
     {
+        # Don't add the attributes if that not required in the device tree
+        # attributes list.
+        if ($attributeDefList{$attr}->notRequiredInDevTree eq "1")
+        {
+            next;
+        }
+
         my $infoDBAttrMetaData = InfoDBAttrMetaData->new();
         if ($attributeDefList{$attr}->datatype eq "simpleType")
         {
@@ -309,6 +316,12 @@ sub getInfoDBTgtsData
     {
         foreach my $attr (keys %{$fapiTargetList{$FAPITgt}->targetAttrList})
         {
+            # Don't add the attributes if that not required in the device tree
+            # attributes list.
+            if ($attributeDefList{$attr}->notRequiredInDevTree eq "1")
+            {
+                next;
+            }
             if (!exists $uniqueTgts{$FAPITgt}{$attr})
             {
                 $uniqueTgts{$FAPITgt}{$attr} = $infoDBAttrsList{$attr}->index;

@@ -68,6 +68,7 @@ struct AttributeDefinition => {
     readable                    => '$',
     virtual                     => '$',
     writeable                   => '$',
+    notRequiredInDevTree        => '$',
     nativeType                  => 'NativeType',
     simpleType                  => 'SimpleType',
     complexType                 => 'ComplexType',
@@ -210,6 +211,11 @@ sub parseAttributeDefinition
     if ( $attrDef->findnodes('writeable')->size > 0)
     {
         $attributeDefinition->writeable(1);
+    }
+
+    if ( $attrDef->findnodes('notRequiredInDevTree')->size > 0)
+    {
+        $attributeDefinition->notRequiredInDevTree(1);
     }
 
     if( $attrDef->exists('nativeType') )
