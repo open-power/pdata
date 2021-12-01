@@ -252,30 +252,34 @@ struct do_write_state {
 	const char *attr_name;
 	const char **argv;
 	int argc;
+
+	struct dtm_node *root;
+	struct dtm_node *node;
+	struct dtree_attr *attr;
 };
 
 static int do_write_parse(void *ctx, void *priv)
 {
 	struct do_write_state *state = (struct do_write_state *)priv;
-	struct dtm_node *root, *node;
 	struct dtree_attr *attr;
 	uint8_t *ptr;
 	int count, ret, i;
 
-	root = dtree_import_root(ctx);
-	node = target_translate(root, state->target);
-	if (!node) {
+	state->root = dtree_import_root(ctx);
+	state->node = target_translate(state->root, state->target);
+	if (!state->node) {
 		fprintf(stderr, "No such target %s\n", state->target);
 		return -1;
 	}
 
-	dtree_import_set_node(node, ctx);
+	dtree_import_set_node(state->node, ctx);
 
 	ret = dtree_import_attr(state->attr_name, ctx, &attr);
 	if (ret < 0) {
 		fprintf(stderr, "No such attribute %s\n", state->attr_name);
 		return -1;
 	}
+	state->attr = attr;
 
 	count = attr->count;
 	if (attr->type == DTREE_ATTR_TYPE_COMPLEX)
@@ -323,10 +327,41 @@ static int do_write_parse(void *ctx, void *priv)
 	return 0;
 }
 
+static int do_write_export(struct do_write_state *state)
+{
+	FILE *fp;
+	const char *override;
+	char *path;
+
+	override = getenv("PDATA_ATTR_OVERRIDE");
+	if (!override)
+		return 0;
+
+	path = dtree_to_cronus_target(state->root, state->node);
+	if (!path) {
+		fprintf(stderr, "Failed to translate node\n");
+		return -1;
+	}
+
+	fp = fopen(override, "a");
+	if (!fp) {
+		fprintf(stderr, "Failed to open %s in append mode\n", override);
+		return -1;
+	}
+
+	dtree_cronus_print_node(path, fp);
+	dtree_cronus_print_attr(state->attr, fp);
+
+	free(path);
+	fclose(fp);
+	return 0;
+}
+
 static int do_write(const char *dtb, const char *infodb, const char *target,
 		    const char *attr_name, const char **argv, int argc)
 {
 	struct do_write_state state;
+	int rc;
 
 	state = (struct do_write_state) {
 		.target = target,
@@ -335,7 +370,11 @@ static int do_write(const char *dtb, const char *infodb, const char *target,
 		.argc = argc,
 	};
 
-	return dtree_import(dtb, infodb, do_write_parse, &state);
+	rc = dtree_import(dtb, infodb, do_write_parse, &state);
+	if (rc != 0)
+		return rc;
+
+	return do_write_export(&state);
 }
 
 static void bmc_usage(const char *prog)
