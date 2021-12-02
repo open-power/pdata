@@ -36,3 +36,5 @@ unit-thread:"ibm,power-thread", "ibm,power10-thread"
 chip-NPCT750AAC:ibm,power10-tpm
 # OSCREFCLK target
 chip-SI5332:ibm,power10-oscrefclk
+# OSCREFCLK target rainier
+chip-Si5332LD:ibm,power10-oscrefclk

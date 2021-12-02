@@ -259,7 +259,15 @@
         <attribute>
             <id>I2C_PARENT_PHYS_PATH</id>
         </attribute>
-        <id>chip-SI5332</id>
+        <id>oscrefclk</id>
         <parent>base</parent>
+    </targetType>
+    <targetType>
+        <id>chip-SI5332</id>
+        <parent>oscrefclk</parent>
+    </targetType>
+    <targetType>
+        <id>chip-Si5332LD</id>
+        <parent>oscrefclk</parent>
     </targetType>
 </attributes>

@@ -66,7 +66,8 @@ sub buildBMCAffinity
             my $location_code = getLocationCode($targetObj, $target);
             $targetObj->setAttribute($target, "LOCATION_CODE", $location_code);
         }
-        elsif ($type eq "OSCREFCLK" and $targetObj->getTargetType($target) eq "chip-SI5332")
+        elsif ($type eq "OSCREFCLK" and ($targetObj->getTargetType($target) eq "chip-SI5332") or
+                                        ($targetObj->getTargetType($target) eq "chip-Si5332LD"))
         {
             $oscrefclk++;
             $osrefclk_instance_per_node++;

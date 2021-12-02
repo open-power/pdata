@@ -33,3 +33,5 @@ unit-occ-power10
 chip-NPCT750AAC
 # OSCREFCLK target
 chip-SI5332
+# OSCREFCLK target rainier
+chip-Si5332LD
