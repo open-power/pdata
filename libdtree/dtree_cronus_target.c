@@ -249,8 +249,8 @@ struct dtm_node *dtree_from_cronus_target(struct dtm_node *root, const char *nam
 		assert(ct.class_name);
 		assert(ct.chip_unit != -1);
 
-		sprintf(path, "/%s%d", ct.class_name, ct.chip_unit);
-		target = dtm_find_node_by_path(root, path);
+		sprintf(path, "%s%d", ct.class_name, ct.chip_unit);
+		target = dtm_find_node_by_name(root, path);
 		return target;
 	}
 
