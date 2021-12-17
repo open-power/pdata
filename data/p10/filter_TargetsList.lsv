@@ -38,3 +38,5 @@ chip-Si5332LD
 # Generic I2C Devices (aka ADC and GPIO Expanders)
 chip-adc
 chip-PCA9554
+# PMIC (Power Management Integrated Circuit)
+chip-vreg-generic

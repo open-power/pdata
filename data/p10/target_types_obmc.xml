@@ -294,4 +294,15 @@
        <id>chip-adc</id>
        <parent>generic_i2c_device</parent>
    </targetType>
+    <targetType>
+        <id>pmic</id>
+        <parent>asic</parent>
+    </targetType>
+    <!-- This special PMIC target adapts the MRW to Hostboot's specific PMIC
+         target.  All attributes should be declared against the parent
+         target. -->
+    <targetType>
+        <id>chip-vreg-generic</id>
+        <parent>pmic</parent>
+    </targetType>
 </attributes>

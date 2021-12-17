@@ -27,3 +27,5 @@ TARGET_TYPE_DIMM:lcard-dimm-ddimm,lcard-dimm-ddimm4u
 TARGET_TYPE_ABUS:unit-abus-power10
 # Generic I2C Devices (aka ADC and GPIO Expanders)
 TARGET_TYPE_GENERICI2CSLAVE:chip-adc,chip-PCA9554
+# PMIC (Power Management Integrated Circuit)
+TARGET_TYPE_PMIC:chip-vreg-generic
