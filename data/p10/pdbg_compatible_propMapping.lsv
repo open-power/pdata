@@ -38,3 +38,6 @@ chip-NPCT750AAC:ibm,power10-tpm
 chip-SI5332:ibm,power10-oscrefclk
 # OSCREFCLK target rainier
 chip-Si5332LD:ibm,power10-oscrefclk
+# Generic I2C Devices (aka ADC and GPIO Expanders)
+chip-adc:ibm,power10-adc
+chip-PCA9554:ibm,power10-gpio_expander

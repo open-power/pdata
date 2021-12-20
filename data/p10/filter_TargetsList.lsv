@@ -35,3 +35,6 @@ chip-NPCT750AAC
 chip-SI5332
 # OSCREFCLK target rainier
 chip-Si5332LD
+# Generic I2C Devices (aka ADC and GPIO Expanders)
+chip-adc
+chip-PCA9554

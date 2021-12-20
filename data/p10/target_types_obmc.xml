@@ -270,4 +270,28 @@
         <id>chip-Si5332LD</id>
         <parent>oscrefclk</parent>
     </targetType>
+    <targetType>
+        <id>asic</id>
+        <parent>base</parent>
+    </targetType>
+    <!-- Generic I2C Device : Used to represent small components that require
+                              i2c access, but very little other support -->
+    <targetType>
+        <id>generic_i2c_device</id>
+        <parent>asic</parent>
+    </targetType>
+    <!-- This special GPIO_EXPANDER target adapts the MRW to Hostboot's specific
+         GENERIC_I2C_DEVICE target.  All attributes should be declared
+         against the parent target. -->
+   <targetType>
+       <id>chip-PCA9554</id>
+       <parent>generic_i2c_device</parent>
+   </targetType>
+   <!-- This special ADC target adapts the MRW to Hostboot's specific
+                GENERIC_I2C_DEVICE target.  All attributes should be declared
+        against the parent target. -->
+   <targetType>
+       <id>chip-adc</id>
+       <parent>generic_i2c_device</parent>
+   </targetType>
 </attributes>

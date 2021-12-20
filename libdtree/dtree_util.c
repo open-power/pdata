@@ -68,6 +68,8 @@ struct {
 	{ "TARGET_TYPE_SBE", "sbe", "sbe" },
 	{ "TARGET_TYPE_SYSTEM", "root", "system" },
 	{ "TARGET_TYPE_XBUS", "xbus", "xbus" },
+	{ "TARGET_TYPE_ADC", "adc", "adc" },
+	{ "TARGET_TYPE_GPIO_EXPANDER", "gpio_expander", "gpio_expander" },
 
 	{ "TARGET_TYPE_NX", "nx", "nx" },
 	{ "TARGET_TYPE_OCC", "occ", "occ" },

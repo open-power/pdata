@@ -216,7 +216,9 @@ sub prepareDeviceTreeHierarchy
         if ( index( $mrwTargetList{$MRWTargetID}->targetType, "dimm") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-ocmb") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "unit-mem_port") != -1 or
-             index( $mrwTargetList{$MRWTargetID}->targetType, "chip-vreg-generic") != -1
+             index( $mrwTargetList{$MRWTargetID}->targetType, "chip-vreg-generic") != -1 or
+             index( $mrwTargetList{$MRWTargetID}->targetType, "chip-adc") != -1 or
+             index( $mrwTargetList{$MRWTargetID}->targetType, "chip-PCA9554") != -1
            )
         {
             $nonPervTgtsList{$MRWTargetID} = $mrwTargetList{$MRWTargetID};
@@ -479,6 +481,18 @@ sub processTargetPath
     {
         my $index = substr($TargetID, index($TargetID, "pib") + 3);
         $lastNode->index($index);
+    }
+    elsif ($lastNode->compatible eq "chip-adc")
+    {
+        my $nodeName = $lastNode->nodeName;
+        $nodeName =~ s/generic_i2c_device/adc/g;
+        $lastNode->nodeName($nodeName);
+    }
+    elsif ($lastNode->compatible eq "chip-PCA9554")
+    {
+        my $nodeName = $lastNode->nodeName;
+        $nodeName =~ s/generic_i2c_device/gpio_expander/g;
+        $lastNode->nodeName($nodeName);
     }
 
     # Add the reg property for the target if that contains "I2C_ADDRESS"
