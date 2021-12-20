@@ -558,13 +558,13 @@ sub addNodesIntoDTSFile
 
         # Don't add compatible property for below targets as per pdbg expectaion
         if ( $key =~ m/sys/ or $key =~ m/node/ or $key =~ m/fsi/ or
-             $key =~ m/pib/ or $key =~ m/i2c/ )
+             $key =~ m/pib/ or $key =~ m/^i2c-/ )
         {
             $addCompProp = 0;
         }
 
         # Don't add index property for below targets as per pdbg expectaion
-        if ( $key =~ m/sys/ or $key =~ m/node/ or $key =~ m/i2c/ )
+        if ( $key =~ m/sys/ or $key =~ m/node/ or $key =~ m/^i2c-/ )
         {
             $addIndexProp = 0;
         }
@@ -573,7 +573,7 @@ sub addNodesIntoDTSFile
 
         # Removing "-" in the node name as per pdbg expectation except
         # below targets
-        if (!($nodeName =~ m/i2c/))
+        if (!($nodeName =~ m/^i2c-/))
         {
             $nodeName =~ s/-//g;
         }
