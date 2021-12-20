@@ -871,7 +871,8 @@ sub getFapiName
     }
     elsif ($targetType eq "PROC"   || $targetType eq "DIMM" ||
            $targetType eq "MEMBUF" || $targetType eq "PMIC" ||
-           $targetType eq "OCMB_CHIP" || $targetType eq "GENERIC_I2C_DEVICE")
+           $targetType eq "OCMB_CHIP" || $targetType eq "GENERIC_I2C_DEVICE" ||
+           $targetType eq "MDS_CTLR" )
     {
         if ($node eq "" || $chipPos eq "")
         {
@@ -890,6 +891,10 @@ sub getFapiName
         elsif ($targetType eq "GENERIC_I2C_DEVICE")
         {
             $chipName = "generici2cslave";
+        }
+        elsif ($targetType eq "MDS_CTLR")
+        {
+            $chipName = "mds";
         }
 
         $chipName = lc $chipName;
@@ -1952,6 +1957,13 @@ sub setMruid
 
     my $type          = $self->getType($target);
     my $mru_prefix_id = $self->{enumeration}->{MRU_PREFIX}->{$type};
+
+    # TODO RTC 291151 - remove when FC is added to MRU_PREFIX type
+    # Do this substitution while FC is not an MRU_PREFIX type
+    if ((!defined $mru_prefix_id) && ($type eq "FC"))
+    {
+        $mru_prefix_id = $self->{enumeration}->{MRU_PREFIX}->{"EX"};
+    }
 
     if ( (!defined $mru_prefix_id) ||
          ($mru_prefix_id eq "")    ||
