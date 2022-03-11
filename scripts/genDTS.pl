@@ -487,12 +487,18 @@ sub processTargetPath
         my $nodeName = $lastNode->nodeName;
         $nodeName =~ s/generic_i2c_device/adc/g;
         $lastNode->nodeName($nodeName);
+        $lastNode->index(${$lastNode->attributeList}{"FAPI_POS"}->value);
     }
     elsif ($lastNode->compatible eq "chip-PCA9554")
     {
         my $nodeName = $lastNode->nodeName;
         $nodeName =~ s/generic_i2c_device/gpio_expander/g;
         $lastNode->nodeName($nodeName);
+        $lastNode->index(${$lastNode->attributeList}{"FAPI_POS"}->value);
+    }
+    elsif ($lastNode->compatible eq "chip-vreg-generic")
+    {
+        $lastNode->index(${$lastNode->attributeList}{"FAPI_POS"}->value);
     }
 
     # Add the reg property for the target if that contains "I2C_ADDRESS"
