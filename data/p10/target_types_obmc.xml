@@ -39,6 +39,9 @@
             <id>DISABLE_SECURITY</id>
         </attribute>
         <attribute>
+            <id>SYS_CLOCK_DECONFIG_STATE</id>
+        </attribute>
+        <attribute>
             <id>SECURE_VERSION_NUM</id>
         </attribute>
         <id>sys-sys-power10</id>
