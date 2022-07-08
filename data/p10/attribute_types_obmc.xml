@@ -791,7 +791,7 @@
                 <default>NO_DECONFIG</default>
                 <id>SYS_CLOCK_DECONFIG_STATE</id>
             </enumeration>
-            <uint8_t></uint8_t>
+            <uint32_t></uint32_t>
         </simpleType>
     </attribute>
 
