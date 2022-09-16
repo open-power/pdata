@@ -58,18 +58,6 @@
         <attribute>
             <id>EQ_GARD</id>
         </attribute>
-        <attribute>
-            <id>PRIMARY_SEEPROM_FAIL_COUNT</id>
-        </attribute>
-        <attribute>
-            <id>SECONDARY_SEEPROM_FAIL_COUNT</id>
-        </attribute>
-        <attribute>
-            <id>PRIMARY_MEASUREMENT_SEEPROM_FAIL_COUNT</id>
-        </attribute>
-        <attribute>
-            <id>SECONDARY_MEASUREMENT_SEEPROM_FAIL_COUNT</id>
-        </attribute>
         <id>chip-processor</id>
         <parent>chip</parent>
     </targetType>
