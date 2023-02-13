@@ -5,7 +5,7 @@
 #
 # OpenPOWER HostBoot Project
 #
-# Contributors Listed Below - COPYRIGHT 2021
+# Contributors Listed Below - COPYRIGHT 2021,2023
 # [+] International Business Machines Corp.
 #
 #
@@ -25,8 +25,7 @@
 
 # This file defines the function BusFruCallouts::setupBusses which
 # sets attributes on targets related to calling out targets that
-# represent intermediate intermediate FRUs for different kinds of bus
-# connections.
+# represent intermediate FRUs for different kinds of bus connections.
 #
 # When an error occurs over a hardware bus (such as an XBUS or SPI
 # connection), any field-replaceable unit (FRU) between the two
@@ -239,7 +238,29 @@ sub setupBusWithParentTarget
 
                     if ($parent eq '')
                     {
-                        die "setupBusWithParentTarget: $conn->{$busPath} has no parent of type $targetType";
+                        # Look for the exception of an OCMB on the planar
+                        my $die = "TRUE";
+                        my $conn_target = $conn->{$busPath};
+                        my $conn_ocmb_target = $targetObj->findParentByType($conn->{$busPath}, "OCMB_CHIP", 0);
+                        if ($conn_ocmb_target ne '')
+                        {
+                            # Since there is a valid OCMB target, look to see if this is
+                            # the exception case of the planar OCMB
+                            # TODO JIRA PFHB-409 the proper check is that getTargetType is
+                            # "chip-ocmb-planar", but for now, use this check
+                            my $mem_mrw_is_planar = $targetObj->getAttribute($conn_ocmb_target,"MEM_MRW_IS_PLANAR");
+                            if  ($mem_mrw_is_planar eq "TRUE")
+                            {
+                                print "setupBusWithParentTarget: skipping connection to planar OCMB" if $targetObj->{debug};
+                                $die = "FALSE";
+                            }
+                        }
+
+                        if ($die eq "TRUE")
+                        {
+                            die "setupBusWithParentTarget: $conn->{$busPath} has no parent of type $targetType (bt=$busType)\n";
+                        }
+
                     }
 
                     my $attributeHolderTarget = $parent;
