@@ -21,9 +21,9 @@ TARGET_TYPE_MI:unit-mi-power10
 TARGET_TYPE_MCC:unit-mcc-power10
 TARGET_TYPE_OMIC:unit-omic-power10
 TARGET_TYPE_OMI:unit-omi-power10
-TARGET_TYPE_OCMB_CHIP:chip-ocmb
+TARGET_TYPE_OCMB_CHIP:chip-ocmb,chip-ocmb-planar
 TARGET_TYPE_MEM_PORT:unit-mem_port
-TARGET_TYPE_DIMM:lcard-dimm-ddimm,lcard-dimm-ddimm4u
+TARGET_TYPE_DIMM:lcard-dimm-ddimm,lcard-dimm-ddimm4u,lcard-dimm-ddr4
 TARGET_TYPE_ABUS:unit-abus-power10
 # Generic I2C Devices (aka ADC and GPIO Expanders)
 TARGET_TYPE_GENERICI2CSLAVE:chip-adc,chip-PCA9554
