@@ -30,7 +30,6 @@ namespace fapi2
         {
             if (!pdbg_target_get_attribute_packed(target, attrIdWONS.c_str(), attrSpec.c_str(), eleCount, val))
             {
-                std::cerr << "pdbg_target_get_attribute_packed failed" << std::endl;
                 return 1; // FAPI2_RC_INVALID_ATTR_GET
             }
         }
@@ -51,7 +50,6 @@ namespace fapi2
         {
             if (!pdbg_target_get_attribute(target, attrIdWONS.c_str(), std::stoi(attrSpec), eleCount, val))
             {
-                std::cerr << "pdbg_target_get_attribute failed" << std::endl;
                 return 1; // FAPI2_RC_INVALID_ATTR_GET
             }
         }
