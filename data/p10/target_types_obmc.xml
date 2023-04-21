@@ -188,6 +188,10 @@
         <parent>chip</parent>
     </targetType>
     <targetType>
+        <id>chip-ocmb-planar</id>
+        <parent>chip</parent>
+    </targetType>
+    <targetType>
         <id>unit-mem_port</id>
         <parent>unit</parent>
     </targetType>
@@ -197,6 +201,10 @@
     </targetType>
     <targetType>
         <id>lcard-dimm-ddimm4u</id>
+        <parent>lcard-dimm</parent>
+    </targetType>
+    <targetType>
+        <id>lcard-dimm-ddr4</id>
         <parent>lcard-dimm</parent>
     </targetType>
     <targetType>
