@@ -176,8 +176,9 @@ sub mergeFAPITargetAttrsIntoMRWIfFound
                 my $mrwTarget = $mrwTargetList{$MRWTargetID};
                 my %updMRWTgtAttrsList = %{$mrwTarget->targetAttrList};
                 my %fapiTgtAttrsList = %{$fapiTargetList{$FAPITargetID} -> FAPITarget::targetAttrList};
+                my @sortedKeys = sort { numericalSort($a, $b) } keys %fapiTgtAttrsList;
 
-                foreach my $fapiAttr ( sort ( keys %fapiTgtAttrsList) )
+                foreach my $fapiAttr ( @sortedKeys )
                 {
                     if( exists $updMRWTgtAttrsList{$fapiAttr} )
                     {
@@ -206,9 +207,10 @@ sub prepareDeviceTreeHierarchy
 {
     my %nonPervTgtsList;
     my %omiPervPath;
-
+    my @sortedKeys = sort { numericalSort($a, $b) } keys %mrwTargetList;
+    
     # Prepare for MRW targets
-    foreach my $MRWTargetID ( sort (keys %mrwTargetList))
+    foreach my $MRWTargetID ( @sortedKeys)
     {
         # Ignoring if dimm, ocmb and memport targets because those targets should come under omi and omi is pervasive target
         # but ignoring targets are not pervasive targets. Those targets device tree hierarchy will prepare based on
@@ -379,12 +381,55 @@ sub addThreadTarget
     }
 }
 
+#returns the number at the end of the string if found, else returns 0
+sub getNumAtTheEnd {
+    my ($str) = @_;
+
+    #expression to extract the number at the end of the string
+    my ($number) = $str =~ /(\d+)$/;
+
+    return $number || 0;
+}
+
+#Sorts two strings using number at the end if they contain the same string part.
+#Or sort them alphabetically
+sub numericalSort {
+    my ($firstString, $secondString) = @_;
+    
+    my $firstStringWithoutNum = $firstString;
+    my $secondStringWithoutNum = $secondString;
+    
+    # store the numerical value at the end to num variables
+    my $firstNum = getNumAtTheEnd($firstString);
+    my $secondNum = getNumAtTheEnd($secondString);
+
+    # Removes the numerical value at the end of each of the variables
+    # s/\d+$// expression chops the number at the end
+    $firstStringWithoutNum =~ s/\d+$//;
+    $secondStringWithoutNum =~ s/\d+$//;
+
+    # Compares the name part without numbers
+    # and if both numbers are 0, it might be possible that the original 
+    # string did not have a number. Hence do a string compare
+    if ($firstStringWithoutNum eq $secondStringWithoutNum 
+        && $firstNum != 0 && $secondNum != 0)
+    {
+      return $firstNum <=> $secondNum;
+    }
+    else
+    {
+      return $firstString cmp $secondString;
+    }
+}
+
 sub prepareDeviceTreeHierarchyForNonPervTgts
 {
     my %nonPervTgtsList = %{$_[0]};
     my %omiTgtPervPathList = %{$_[1]};
-
-    foreach my $tgtID ( sort (keys %nonPervTgtsList))
+    
+    my @sortedKeys = sort { numericalSort($a, $b) } keys %nonPervTgtsList;
+    
+    foreach my $tgtID (@sortedKeys)
     {
         my %targetAttrList = %{$nonPervTgtsList{$tgtID}->targetAttrList};
         if ( !exists $targetAttrList{"AFFINITY_PATH"} )
@@ -567,8 +612,9 @@ sub addNodesIntoDTSFile
     my $addDevTreeNode = 1;
     my $addCompProp = 1;
     my $addIndexProp = 1;
+    my @sortedKeys = sort { numericalSort($a, $b) } keys %{$nodes};
 
-    foreach my $key ( sort (keys %{$nodes}))
+    foreach my $key ( @sortedKeys)
     {
         # Don't add device tree node for below targets as per pdbg expectaion
         if ( $key =~ m/sys/ or $key =~ m/node/ )
@@ -673,7 +719,8 @@ sub addTargetDataIntoDTSFile
     }
 
     # Attributes
-    foreach my $AttrID ( sort ( keys %attributeList ) )
+    my @sortedKeys = sort { numericalSort($a, $b) } keys %attributeList;
+    foreach my $AttrID ( @sortedKeys )
     {
         my $attrType = getAttributeType($AttrID);
         if ( $attrType eq "")
