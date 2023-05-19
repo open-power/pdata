@@ -15,7 +15,7 @@ esac
 AC_DEFINE_UNQUOTED([PCHIP], ["$pchip"], [Power chip type])
 
 case "$host" in
-	arm*-*-*) ARCH="arm" ;;
+	aarch64*-*-* | arm*-*-*) ARCH="arm" ;;
 	*) ARCH=$(uname -m) ;;
 esac
 AC_SUBST([ARCH])
