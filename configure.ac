@@ -1,4 +1,4 @@
-AC_INIT([pdata], [1.1])
+AC_INIT([pdata],[1.1])
 AM_INIT_AUTOMAKE([subdir-objects])
 AM_SILENT_RULES([yes])
 
@@ -34,7 +34,7 @@ esac
 AC_SUBST([ENDIAN_FLAG])
 
 AC_PROG_CC
-AC_PROG_LIBTOOL
+LT_INIT
 AC_PROG_CXX
 
 if test x"$ARCH" != "xarm" ; then
