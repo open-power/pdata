@@ -238,27 +238,23 @@ sub setupBusWithParentTarget
 
                     if ($parent eq '')
                     {
-                        # Look for the exception of an OCMB on the planar
-                        my $die = "TRUE";
-                        my $conn_target = $conn->{$busPath};
+                        # Look for the exception case of a valid OCMB target being on the planar.
+                        # In this exception case the OCMB is on the planar and not on the DDIMM
+                        # itself; therefore, the OCMB won't have a parent of type DIMM.
+                        my $die = 1;
                         my $conn_ocmb_target = $targetObj->findParentByType($conn->{$busPath}, "OCMB_CHIP", 0);
-                        if ($conn_ocmb_target ne '')
+                        if (($conn_ocmb_target ne '') &&
+                            ($targetType eq "DIMM") &&
+                            ($targetObj->getTargetType($conn_ocmb_target) eq "chip-ocmb-planar"))
                         {
-                            # Since there is a valid OCMB target, look to see if this is
-                            # the exception case of the planar OCMB
-                            # TODO JIRA PFHB-409 the proper check is that getTargetType is
-                            # "chip-ocmb-planar", but for now, use this check
-                            my $mem_mrw_is_planar = $targetObj->getAttribute($conn_ocmb_target,"MEM_MRW_IS_PLANAR");
-                            if  ($mem_mrw_is_planar eq "TRUE")
-                            {
-                                print "setupBusWithParentTarget: skipping connection to planar OCMB" if $targetObj->{debug};
-                                $die = "FALSE";
-                            }
+                            print "setupBusWithParentTarget: skipping connection to planar OCMB\n" if $targetObj->{debug};
+                            $die = 0;
                         }
 
-                        if ($die eq "TRUE")
+                        if ($die == 1)
                         {
-                            die "setupBusWithParentTarget: $conn->{$busPath} has no parent of type $targetType (bt=$busType)\n";
+                            die "setupBusWithParentTarget: $conn->{$busPath} has no parent of type " .
+                                "$targetType (bus type = $busType)\n";
                         }
 
                     }

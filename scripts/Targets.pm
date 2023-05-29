@@ -883,7 +883,8 @@ sub getFapiName
     elsif ($targetType eq "PROC"   || $targetType eq "DIMM" ||
            $targetType eq "MEMBUF" || $targetType eq "PMIC" ||
            $targetType eq "OCMB_CHIP" || $targetType eq "GENERIC_I2C_DEVICE" ||
-           $targetType eq "MDS_CTLR" )
+           $targetType eq "MDS_CTLR"  || $targetType eq "POWER_IC" ||
+           $targetType eq "TEMP_SENSOR")
     {
         if ($node eq "" || $chipPos eq "")
         {
@@ -1393,6 +1394,20 @@ sub getInstanceName
     return $target_ptr->{TARGET}->{instance_name};
 }
 
+## returns target instance number
+sub getInstanceNum
+{
+    my $self       = shift;
+    my $target     = shift;
+    my $name       = $self->getInstanceName($target);
+    my $num;
+
+    ($num) = $name =~ /(\d+)$/;
+    if ("" eq $num) { $num = 0; }
+
+    return $num;
+}
+
 ## returns the parent target type
 sub getTargetType
 {
@@ -1480,24 +1495,34 @@ sub isBadComplexAttribute
 
     if (!defined($target_ptr->{ATTRIBUTES}->{$attribute}))
     {
+        confess "isBadComplexAttribute no attribute";
         return 1;
     }
     if (!defined($target_ptr->{ATTRIBUTES}->{$attribute}->{default}))
     {
+        confess "isBadComplexAttribute no default";
         return 1;
     }
     if (!defined($target_ptr->{ATTRIBUTES}->{$attribute}->{default}->{field}))
     {
+        confess "isBadComplexAttribute no default field";
+        return 1;
+    }
+    if ($field eq "")
+    {
+        confess "isBadComplexAttribute blank value for field";
         return 1;
     }
     if ($target_ptr->{ATTRIBUTES}->{$attribute}->{default}->{field}->{$field}
         ->{value} eq "")
     {
+        confess "isBadComplexAttribute blank value in field";
         return 1;
     }
     if ($target_ptr->{ATTRIBUTES}->{$attribute}->{default}->{field}->{$field}
         ->{value} eq $badvalue)
     {
+        confess "isBadComplexAttribute bad value in field";
         return 1;
     }
     return 0;
@@ -1513,8 +1538,8 @@ sub getAttribute
 
     if (!defined($target_ptr->{ATTRIBUTES}->{$attribute}->{default}))
     {
-        confess ("ERROR: getAttribute(%s,%s) | Attribute not defined\n",
-            $target, $attribute);
+        print "ERROR: getAttribute(".$target.",".$attribute.")\n";
+        confess ("Attribute not defined\n");
         $self->myExit(4);
     }
     if (ref($target_ptr->{ATTRIBUTES}->{$attribute}->{default}) eq "HASH")
@@ -1833,6 +1858,28 @@ sub getTargetChildren
 
     ## this is an array
     return $target_ptr->{CHILDREN};
+}
+
+## returns a pointer to an array of children target names
+sub getTargetChildrenByType
+{
+    my $self        = shift;
+    my $target      = shift;
+    my $typeToMatch = shift;
+    my $target_ptr = $self->getTarget($target);
+
+    my @children;
+    foreach my $child (@{ $self->getTargetChildren($target) })
+    {
+        my $childType = $self->getType($child);
+        if ($childType eq $typeToMatch)
+        {
+            push(@children,$child);
+        }
+    }
+
+    ## this is an array
+    return @children;
 }
 
 ## returns an array of all child (including grandchildren) target names
