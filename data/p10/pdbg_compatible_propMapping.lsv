@@ -24,6 +24,9 @@ unit-mem_port:ibm,power10-memport
 lcard-dimm-ddimm:ibm,power10-dimm
 lcard-dimm-ddimm4u:ibm,power10-dimm
 lcard-dimm-ddr4:ibm,power10-dimm
+unit-ddr4-jedec:ibm,power10-dimm
+unit-ddr5-jedec:ibm,power10-dimm
+unit-ddr-jedec:ibm,power10-dimm
 # Using smpgroup instead abus in compatible property as per
 # PHYS_PATH attribute which is changed in processMrw.pl
 unit-abus-power10:ibm,power10-smpgroup
