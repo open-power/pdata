@@ -208,6 +208,18 @@
         <parent>lcard-dimm</parent>
     </targetType>
     <targetType>
+        <id>unit-ddr</id>
+        <parent>lcard-dimm</parent>
+    </targetType>
+    <targetType>
+        <id>unit-ddr4-jedec</id>
+        <parent>lcard-dimm</parent>
+    </targetType>
+    <targetType>
+        <id>unit-ddr5-jedec</id>
+        <parent>lcard-dimm</parent>
+    </targetType>
+    <targetType>
         <id>lcard-dimm</id>
         <parent>card</parent>
     </targetType>

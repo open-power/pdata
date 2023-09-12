@@ -1,5 +1,7 @@
 package processMrw_bmc;
 
+use Data::Dumper;
+
 sub return_plugins
 {
     %::hwsvmrw_plugins = (
@@ -48,8 +50,34 @@ sub buildBMCAffinity
         }
         elsif ($type eq "DIMM")
         {
+            # The DIMM target that needs to be picked up has a new type
+            # as per the new HB changes to support DDR5. They will be
+            # unit-ddr* type and not lcard-dimm*. While parsing we get all
+            # of them, so skip the unit-ddr*, get the location code from
+            # the target with lcard type and set the location code for its
+            # child targets which are again unit-ddr*
+            my $target_type = $targetObj->getTargetType($target);
+            if (($target_type eq "unit-ddr") ||
+                ($target_type eq "unit-ddr4-jedec") ||
+                ($target_type eq "unit-ddr5-jedec"))
+               {
+                   next;
+               }
+
             my $location_code = getLocationCode($targetObj, $target);
+            # needed for Bonnell which has older DIMM type
             $targetObj->setAttribute($target, "LOCATION_CODE", $location_code);
+
+            foreach my $child (@{ $targetObj->getTargetChildren($target) })
+            {
+                my $child_target_type = $targetObj->getTargetType($child);
+                if (($child_target_type eq "unit-ddr") ||
+                    ($child_target_type eq "unit-ddr4-jedec") ||
+                    ($child_target_type eq "unit-ddr5-jedec"))
+                {
+                     $targetObj->setAttribute($child, "LOCATION_CODE", $location_code);
+                }
+             }
         }
         elsif ($type eq "OCMB_CHIP")
         {

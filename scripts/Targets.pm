@@ -835,6 +835,23 @@ sub getTargetPosition
 
 
 #--------------------------------------------------
+# @brief Maps a target type to the fapi target string
+#--------------------------------------------------
+my %FAPI_TYPE_STRINGS =
+(
+    # chips
+    PROC        => "pu",
+    OCMB_CHIP   => "ocmb",
+    GENERIC_I2C_DEVICE    => "generici2cslave",
+    MDS_CTLR    => "mds",
+
+    # units
+    MEM_PORT    => "mp",
+    SMPGROUP    => "iolink",
+    PERV_ODY    => "perv",
+);
+
+#--------------------------------------------------
 # @brief Generate the fapi string for a given target
 #
 # @param[in] $self   - The global target object
@@ -842,6 +859,7 @@ sub getTargetPosition
 # @param[in] $node - The node parent of the input target
 # @param[in] $chipPos - chip position relative to node
 # @param[in] $chipletPos - unit position relative to chip
+# @param[in] $parentType - The type of the parent target
 #
 # @return the position of the target given
 #--------------------------------------------------
@@ -852,13 +870,19 @@ sub getFapiName
     my $node        = shift;
     my $chipPos     = shift; # chip position relative to node
     my $chipletPos  = shift; # unit position relative to chip
+    my $parentType  = shift;
 
     if ($targetType eq "")
     {
-        die "getFapiName: ERROR: Please specify a taget name\n";
+        die "getFapiName: ERROR: Please specify a target name\n";
     }
 
-    my $chipName = $targetType; # default to target type
+    # Handle legacy code until it adds new parm
+    if( $parentType eq undef )
+    {
+        $parentType = "PROC";
+    }
+
     my $fapiName = "";
 
     #This is a static variable. Persists over time
@@ -880,10 +904,12 @@ sub getFapiName
     {
         return "k0";
     }
+    # First-level "chip" targets with their own chiptype
     elsif ($targetType eq "PROC"   || $targetType eq "DIMM" ||
            $targetType eq "MEMBUF" || $targetType eq "PMIC" ||
            $targetType eq "OCMB_CHIP" || $targetType eq "GENERIC_I2C_DEVICE" ||
-           $targetType eq "MDS_CTLR" )
+           $targetType eq "MDS_CTLR"  || $targetType eq "POWER_IC" ||
+           $targetType eq "TEMP_SENSOR")
     {
         if ($node eq "" || $chipPos eq "")
         {
@@ -891,26 +917,16 @@ sub getFapiName
                  current node: $node, chipPos: $chipPos\n";
         }
 
-        if ($targetType eq "PROC")
+        my $chipName = $targetType; # default to target type
+        if( exists $FAPI_TYPE_STRINGS{$targetType} )
         {
-            $chipName = "pu";
-        }
-        elsif ($targetType eq "OCMB_CHIP")
-        {
-            $chipName = "ocmb";
-        }
-        elsif ($targetType eq "GENERIC_I2C_DEVICE")
-        {
-            $chipName = "generici2cslave";
-        }
-        elsif ($targetType eq "MDS_CTLR")
-        {
-            $chipName = "mds";
+            $chipName = $FAPI_TYPE_STRINGS{$targetType};
         }
 
         $chipName = lc $chipName;
         $fapiName = sprintf("%s:k0:n%d:s0:p%02d", $chipName, $node, $chipPos);
     }
+    # Unit-level "sub" targets
     else
     {
         if ($node eq "" || $chipPos eq "" || $chipletPos eq "")
@@ -920,27 +936,24 @@ sub getFapiName
                  chipletPos: $chipletPos\n";
         }
 
-        if ($targetType eq "MBA" || $targetType eq "L4")
+        # chip portion comes from parent
+        my $chipName = $parentType;
+        if( exists $FAPI_TYPE_STRINGS{$parentType} )
         {
-            $chipName = "membuf.$targetType";
-
+            $chipName = $FAPI_TYPE_STRINGS{$parentType};
         }
-        elsif ($targetType eq "MEM_PORT")
-        {
-            $chipName = "ocmb.mp";
-        }
-        elsif ($targetType eq "SMPGROUP")
-        {
-            $chipName = "pu.iolink";
-        }
-        else
-        {
-            $chipName = "pu.$targetType";
-        }
-
         $chipName = lc $chipName;
-        $fapiName = sprintf("%s:k0:n%d:s0:p%02d:c%d",
-                            $chipName, $node, $chipPos, $chipletPos);
+
+        # unit portion comes from myself
+        my $unitName = $targetType;
+        if( exists $FAPI_TYPE_STRINGS{$targetType} )
+        {
+            $unitName = $FAPI_TYPE_STRINGS{$targetType};
+        }
+        $unitName = lc $unitName;
+
+        $fapiName = sprintf("%s.%s:k0:n%d:s0:p%02d:c%d",
+                            $chipName, $unitName, $node, $chipPos, $chipletPos);
     }
 
     return $fapiName;
@@ -1393,6 +1406,20 @@ sub getInstanceName
     return $target_ptr->{TARGET}->{instance_name};
 }
 
+## returns target instance number
+sub getInstanceNum
+{
+    my $self       = shift;
+    my $target     = shift;
+    my $name       = $self->getInstanceName($target);
+    my $num;
+
+    ($num) = $name =~ /(\d+)$/;
+    if ("" eq $num) { $num = 0; }
+
+    return $num;
+}
+
 ## returns the parent target type
 sub getTargetType
 {
@@ -1480,24 +1507,34 @@ sub isBadComplexAttribute
 
     if (!defined($target_ptr->{ATTRIBUTES}->{$attribute}))
     {
+        confess "isBadComplexAttribute no attribute";
         return 1;
     }
     if (!defined($target_ptr->{ATTRIBUTES}->{$attribute}->{default}))
     {
+        confess "isBadComplexAttribute no default";
         return 1;
     }
     if (!defined($target_ptr->{ATTRIBUTES}->{$attribute}->{default}->{field}))
     {
+        confess "isBadComplexAttribute no default field";
+        return 1;
+    }
+    if ($field eq "")
+    {
+        confess "isBadComplexAttribute blank value for field";
         return 1;
     }
     if ($target_ptr->{ATTRIBUTES}->{$attribute}->{default}->{field}->{$field}
         ->{value} eq "")
     {
+        confess "isBadComplexAttribute blank value in field";
         return 1;
     }
     if ($target_ptr->{ATTRIBUTES}->{$attribute}->{default}->{field}->{$field}
         ->{value} eq $badvalue)
     {
+        confess "isBadComplexAttribute bad value in field";
         return 1;
     }
     return 0;
@@ -1513,8 +1550,8 @@ sub getAttribute
 
     if (!defined($target_ptr->{ATTRIBUTES}->{$attribute}->{default}))
     {
-        confess ("ERROR: getAttribute(%s,%s) | Attribute not defined\n",
-            $target, $attribute);
+        print "ERROR: getAttribute(".$target.",".$attribute.")\n";
+        confess ("Attribute not defined\n");
         $self->myExit(4);
     }
     if (ref($target_ptr->{ATTRIBUTES}->{$attribute}->{default}) eq "HASH")
@@ -1833,6 +1870,28 @@ sub getTargetChildren
 
     ## this is an array
     return $target_ptr->{CHILDREN};
+}
+
+## returns a pointer to an array of children target names
+sub getTargetChildrenByType
+{
+    my $self        = shift;
+    my $target      = shift;
+    my $typeToMatch = shift;
+    my $target_ptr = $self->getTarget($target);
+
+    my @children;
+    foreach my $child (@{ $self->getTargetChildren($target) })
+    {
+        my $childType = $self->getType($child);
+        if ($childType eq $typeToMatch)
+        {
+            push(@children,$child);
+        }
+    }
+
+    ## this is an array
+    return @children;
 }
 
 ## returns an array of all child (including grandchildren) target names

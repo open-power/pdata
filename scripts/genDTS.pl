@@ -216,6 +216,7 @@ sub prepareDeviceTreeHierarchy
         # but ignoring targets are not pervasive targets. Those targets device tree hierarchy will prepare based on
         # omi pervasive path which is prepared in this for loop
         if ( index( $mrwTargetList{$MRWTargetID}->targetType, "dimm") != -1 or
+             index( $mrwTargetList{$MRWTargetID}->targetType, "ddr") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-ocmb") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "unit-mem_port") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-vreg-generic") != -1 or
@@ -494,7 +495,8 @@ sub processTargetPath
     # CHIP_UNIT attribute because, those targets are not pervasive target
     if ( ( index( $lastNode->compatible, "chip-ocmb") != -1 ) or
          ( index( $lastNode->compatible, "unit-mem_port") != -1 ) or
-         ( index( $lastNode->compatible, "dimm") != -1 )
+         ( index( $lastNode->compatible, "dimm") != -1 ) or
+         ( index( $lastNode->compatible, "ddr") != -1 )
        )
     {
         # To get omi target CHIP_UNIT attribute, need to get omi target id.
