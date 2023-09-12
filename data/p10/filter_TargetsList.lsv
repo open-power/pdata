@@ -22,6 +22,9 @@ unit-mem_port
 lcard-dimm-ddimm
 lcard-dimm-ddimm4u
 lcard-dimm-ddr4
+unit-ddr
+unit-ddr4-jedec
+unit-ddr5-jedec
 # In MRW smpgroup target type used as "unit-abus-power10" and instance name will
 # contain "group" to differentiate between abus and smpgroup if system
 # supporting smpgroup target so, using "unit-abus-power10" to get smpgroup.
