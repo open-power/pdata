@@ -491,12 +491,9 @@ sub processTargetPath
         $lastNode->index(${$lastNode->attributeList}{"CHIP_UNIT"}->value);
     }
 
-    # Filling index for ocmb, memport, dimm targets based on omi target
+    # Filling index for ocmb targets based on omi target
     # CHIP_UNIT attribute because, those targets are not pervasive target
-    if ( ( index( $lastNode->compatible, "chip-ocmb") != -1 ) or
-         ( index( $lastNode->compatible, "unit-mem_port") != -1 ) or
-         ( index( $lastNode->compatible, "dimm") != -1 ) or
-         ( index( $lastNode->compatible, "ddr") != -1 )
+    if ( ( index( $lastNode->compatible, "chip-ocmb") != -1 )
        )
     {
         # To get omi target CHIP_UNIT attribute, need to get omi target id.
@@ -518,6 +515,16 @@ sub processTargetPath
             $nodeName =~ s/_chip//g;
             $lastNode->nodeName($nodeName);
         }
+    }
+    # Filling index for  memport, dimm targets based on FAPI_POS
+    # This is different from ocmb since both memports under each ocmb
+    # is used in DDR5 systems and we need unique indices
+    elsif ( ( index( $lastNode->compatible, "unit-mem_port") != -1 ) or
+            ( index( $lastNode->compatible, "dimm") != -1 ) or
+            ( index( $lastNode->compatible, "ddr") != -1 )
+          )
+    {
+        $lastNode->index(${$lastNode->attributeList}{"FAPI_POS"}->value);
     }
     elsif ($lastNode->compatible eq "unit-fsi")
     {
