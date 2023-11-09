@@ -19,6 +19,7 @@ unit-omi-power10
 chip-ocmb
 chip-ocmb-planar
 unit-mem_port
+unit-perv
 lcard-dimm-ddimm
 lcard-dimm-ddimm4u
 lcard-dimm-ddr4
