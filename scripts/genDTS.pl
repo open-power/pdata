@@ -219,6 +219,7 @@ sub prepareDeviceTreeHierarchy
              index( $mrwTargetList{$MRWTargetID}->targetType, "ddr") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-ocmb") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "unit-mem_port") != -1 or
+             index( $mrwTargetList{$MRWTargetID}->targetType, "unit-perv") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-vreg-generic") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-adc") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-PCA9554") != -1
@@ -495,6 +496,7 @@ sub processTargetPath
     # CHIP_UNIT attribute because, those targets are not pervasive target
     if ( ( index( $lastNode->compatible, "chip-ocmb") != -1 ) or
          ( index( $lastNode->compatible, "unit-mem_port") != -1 ) or
+         ( index( $lastNode->compatible, "unit-perv") != -1 ) or
          ( index( $lastNode->compatible, "dimm") != -1 ) or
          ( index( $lastNode->compatible, "ddr") != -1 )
        )

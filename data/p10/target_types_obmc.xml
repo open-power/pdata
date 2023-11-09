@@ -196,6 +196,10 @@
         <parent>unit</parent>
     </targetType>
     <targetType>
+        <id>unit-perv</id>
+        <parent>unit</parent>
+    </targetType>    
+    <targetType>
         <id>lcard-dimm-ddimm</id>
         <parent>lcard-dimm</parent>
     </targetType>
