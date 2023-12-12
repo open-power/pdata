@@ -494,12 +494,7 @@ sub processTargetPath
 
     # Filling index for ocmb, memport, dimm targets based on omi target
     # CHIP_UNIT attribute because, those targets are not pervasive target
-    if ( ( index( $lastNode->compatible, "chip-ocmb") != -1 ) or
-         ( index( $lastNode->compatible, "unit-mem_port") != -1 ) or
-         ( index( $lastNode->compatible, "unit-perv") != -1 ) or
-         ( index( $lastNode->compatible, "dimm") != -1 ) or
-         ( index( $lastNode->compatible, "ddr") != -1 )
-       )
+    if ( index( $lastNode->compatible, "chip-ocmb") != -1 )
     {
         # To get omi target CHIP_UNIT attribute, need to get omi target id.
         # So, using respective given target AFFINITY_PATH to get omi target id.
