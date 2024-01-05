@@ -61,6 +61,7 @@ struct {
 	{ "TARGET_TYPE_PEC", "pec", "pec" },
 	{ "TARGET_TYPE_PERV", "chiplet", "perv" },
 	{ "TARGET_TYPE_PERV", "perv", "perv" },
+	{ "TARGET_TYPE_PERV", "ody_chiplet", "perv" },
 	{ "TARGET_TYPE_PHB", "phb", "phb" },
 	{ "TARGET_TYPE_PMIC", "pmic", "pmic" },
 	{ "TARGET_TYPE_PPE", "ppe", "ppe" },

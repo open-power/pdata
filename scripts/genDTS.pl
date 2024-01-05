@@ -219,7 +219,7 @@ sub prepareDeviceTreeHierarchy
              index( $mrwTargetList{$MRWTargetID}->targetType, "ddr") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-ocmb") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "unit-mem_port") != -1 or
-             index( $mrwTargetList{$MRWTargetID}->targetType, "unit-perv") != -1 or
+             $mrwTargetList{$MRWTargetID}->targetType eq "unit-perv" or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-vreg-generic") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-adc") != -1 or
              index( $mrwTargetList{$MRWTargetID}->targetType, "chip-PCA9554") != -1
@@ -491,8 +491,7 @@ sub processTargetPath
     {
         $lastNode->index(${$lastNode->attributeList}{"CHIP_UNIT"}->value);
     }
-
-    # Filling index for ocmb, memport, dimm targets based on omi target
+    # Filling index for ocmb based on omi target
     # CHIP_UNIT attribute because, those targets are not pervasive target
     if ( index( $lastNode->compatible, "chip-ocmb") != -1 )
     {
@@ -509,12 +508,10 @@ sub processTargetPath
 
         # Changing node name for ocmb target as per pdbg expectation.
         # Removing "_chip" from ocmb target element value from PHYS_PATH value.
-        if (index( $lastNode->compatible, "chip-ocmb") != -1)
-        {
-            my $nodeName = $lastNode->nodeName;
-            $nodeName =~ s/_chip//g;
-            $lastNode->nodeName($nodeName);
-        }
+        my $nodeName = $lastNode->nodeName;
+        $nodeName =~ s/_chip//g;
+        $lastNode->nodeName($nodeName);
+
     }
     elsif ($lastNode->compatible eq "unit-fsi")
     {
