@@ -109,7 +109,7 @@
     </targetType>
     <targetType>
         <id>unit-perv-power10</id>
-        <parent>unit-perv</parent>
+        <parent>unit</parent>
     </targetType>
     <targetType>
         <id>unit-perv</id>
@@ -195,10 +195,6 @@
         <id>unit-mem_port</id>
         <parent>unit</parent>
     </targetType>
-    <targetType>
-        <id>unit-perv</id>
-        <parent>unit</parent>
-    </targetType>    
     <targetType>
         <id>lcard-dimm-ddimm</id>
         <parent>lcard-dimm</parent>

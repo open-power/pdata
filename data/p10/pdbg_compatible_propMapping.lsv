@@ -21,7 +21,7 @@ unit-omi-power10:ibm,power10-omi
 chip-ocmb:"ibm,power-ocmb", "ibm,power10-ocmb"
 chip-ocmb-planar:"ibm,power-ocmb", "ibm,power10-ocmb"
 unit-mem_port:ibm,power10-memport
-unit-perv:ibm,power10-chiplet
+unit-perv:ibm,ody-chiplet
 lcard-dimm-ddimm:ibm,power10-dimm
 lcard-dimm-ddimm4u:ibm,power10-dimm
 lcard-dimm-ddr4:ibm,power10-dimm
