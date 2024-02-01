@@ -541,6 +541,11 @@ sub processTargetPath
     {
         $lastNode->index(${$lastNode->attributeList}{"FAPI_POS"}->value);
     }
+    elsif ( (index ($lastNode->compatible, "unit-ddr") != -1) or
+          (index ($lastNode->compatible, "unit-mem_port") != -1) )
+    {
+        $lastNode->index(${$lastNode->attributeList}{"FAPI_POS"}->value);
+    }
 
     # Add the reg property for the target if that contains "I2C_ADDRESS"
     # attribute to perform the i2c read and write operation on this target.
