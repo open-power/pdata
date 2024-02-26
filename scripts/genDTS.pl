@@ -541,8 +541,9 @@ sub processTargetPath
     {
         $lastNode->index(${$lastNode->attributeList}{"FAPI_POS"}->value);
     }
-    elsif ( (index ($lastNode->compatible, "unit-ddr") != -1) or
-          (index ($lastNode->compatible, "unit-mem_port") != -1) )
+    elsif ( (index ($lastNode->compatible, "ddr") != -1) or
+          (index ($lastNode->compatible, "unit-mem_port") != -1) or 
+          ($lastNode->compatible eq "unit-perv") )
     {
         $lastNode->index(${$lastNode->attributeList}{"FAPI_POS"}->value);
     }
