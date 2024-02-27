@@ -311,7 +311,7 @@ sub prepareDeviceTreeHierarchy
         my @hash = split(/\//, substr($finalPath, index($finalPath, ':') + 1));
         processTargetPath($MRWTargetID, \@hash);
         # Create omi pervasive path list for use to dimm. ocmb and memport targets
-        $omiPervPath{$MRWTargetID} = $finalPath if index( $mrwTargetList{$MRWTargetID}->targetType, "unit-omi") != -1;
+        $omiPervPath{$MRWTargetID} = $finalPath if index($mrwTargetList{$MRWTargetID}->targetType, "unit-omi") != -1;
 
         # Add FSI target manually under proc target if MRW target is chip-processor.
         addFSITarget($MRWTargetID, $finalPath) if index($mrwTargetList{$MRWTargetID}->targetType, "chip-processor") != -1;
@@ -360,6 +360,51 @@ sub addPIBTarget
     $pibTgt->targetAttrList({});
     $mrwTargetList{$pibTgtId} = $pibTgt;
     processTargetPath($pibTgtId, \@hash);
+}
+
+sub addOCMBPIBTarget
+{
+    my $ocmbTgtId = $_[0];
+    my $ocmbPath = $_[1];
+
+    my $pibIndex = 0;
+
+    if ($ocmbPath =~ /ocmb_chip-(\d+)/) {
+        $pibIndex = $1;
+    } else {
+        print "Pattern 'ocmb_chip-' not found in the input string.\n";
+    }
+
+    my $pibPath = $ocmbPath."/pib";
+    my $pibTgtId = $ocmbTgtId."pib".$pibIndex;
+    my @hash = split(/\//, substr($pibPath, index($pibPath, ':') + 1));
+    my $pibTgt = MRWTarget->new();
+    $pibTgt->targetType("unit-pib");
+    $pibTgt->targetAttrList({});
+    $mrwTargetList{$pibTgtId} = $pibTgt;
+    processTargetPath($pibTgtId, \@hash);
+}
+
+sub addOCMBFSITarget
+{
+    my $ocmbTgtId = $_[0];
+    my $ocmbPath = $_[1];
+
+    my $fsiIndex = 0;
+    if ($ocmbPath =~ /ocmb_chip-(\d+)/) {
+        $fsiIndex = $1;
+    } else {
+        print "Pattern 'ocmb_chip-' not found in the input string.\n";
+    }
+    # Pdbg did not expect index along with node name
+    my $fsiPath = $ocmbPath."/fsi";
+    my $fsiTgtId = $ocmbTgtId."fsi".$fsiIndex;
+    my @hash = split(/\//, substr($fsiPath, index($fsiPath, ':') + 1));
+    my $fsiTgt = MRWTarget->new();
+    $fsiTgt->targetType("unit-fsi");
+    $fsiTgt->targetAttrList({});
+    $mrwTargetList{$fsiTgtId} = $fsiTgt;
+    processTargetPath($fsiTgtId, \@hash);
 }
 
 sub addThreadTarget
@@ -428,9 +473,35 @@ sub prepareDeviceTreeHierarchyForNonPervTgts
 {
     my %nonPervTgtsList = %{$_[0]};
     my %omiTgtPervPathList = %{$_[1]};
+    my %myOCMBMap;
     
     my @sortedKeys = sort { numericalSort($a, $b) } keys %nonPervTgtsList;
+    foreach my $tgtID (@sortedKeys)
+    {
+
+        my %targetAttrList = %{$nonPervTgtsList{$tgtID}->targetAttrList};
+        my $aff_path = $targetAttrList{'AFFINITY_PATH'}->value;
+        #Look for all the ocmb chips
+        #find the affinity path and create a map with
+        #affinity path(key), the ocmb number as the value
+        #this is needed for dimms, adc and other targets that does not have 
+        #ocmb number part of its targetId.
+        if(index($nonPervTgtsList{$tgtID}->targetType, "chip-ocmb") != -1)
+        {
+            my $tgtIDCopy = $tgtID;
+            $tgtIDCopy =~ s/_chip//g;
+            my $extracted_number = 0;
+            if ($tgtIDCopy =~ /ocmb(\d+)/) {
+                $extracted_number = $1;
+            }
+
+            $aff_path =~ s/^[^:]+://;
+            $aff_path =~ s/ocmb_chip-\d+$//; 
+            $myOCMBMap{$aff_path} = $extracted_number;
+        }
+    }
     
+    my $extracted_number = 0;
     foreach my $tgtID (@sortedKeys)
     {
         my %targetAttrList = %{$nonPervTgtsList{$tgtID}->targetAttrList};
@@ -442,25 +513,42 @@ sub prepareDeviceTreeHierarchyForNonPervTgts
         }
 
         my $tgtPath = $targetAttrList{'AFFINITY_PATH'}->value;
-        # First Ignoring affinity: from path then getting till omi path to covert as omi id for getting omi perv path
-        my $omiTgtId = substr( substr($tgtPath, index($tgtPath, ':') + 1), 0, index($tgtPath, 'omi-') - 4);
-        $omiTgtId =~ s/[-\/]//g;
 
-        if ( !exists $omiTgtPervPathList{$omiTgtId} )
+        my $tgtPathToLookInHash = $tgtPath;
+
+        if ($tgtPath =~ /:(.*?)\/ocmb_chip-\d+/) {
+            $tgtPathToLookInHash = $1;
+        } else {
+            print "ocmb_chip- Pattern not found in the input string.\n";
+        }
+        $tgtPathToLookInHash .= "/";
+        #We have got this target's affinity path, using the map we can find its ocmb number
+        my $ocmbNumber = $myOCMBMap{$tgtPathToLookInHash};
+        my $phyPath = "physical:sys-0/node-0/ocmb_chip-" .$ocmbNumber;
+
+        if(index($nonPervTgtsList{$tgtID}->targetType, "chip-ocmb") == -1)
         {
-            print "CRITICAL: \" OMI target id \"$omiTgtId\" is not found to get OMI parv path\n" if isVerboseReq('C');
-            next;
+            $phyPath .= "/pib";
+        }
+        
+        my $substring_after_ocmb_chip;
+        if ($tgtPath =~ /ocmb_chip-\d+(.+)/) {
+            $substring_after_ocmb_chip = $1;
         }
 
-        my $omiTgtPervPath = $omiTgtPervPathList{$omiTgtId};
-
-        # Getting non pervasive target path alone from AFFINITY_PATH
-        my $nonPervTgtPath = substr($tgtPath, index($tgtPath, 'omi-') + 5, length($tgtPath) - ( index($tgtPath, 'omi-') + 5) );
-        my $nonPervTgtPathWithOMITgtPath = $omiTgtPervPath.$nonPervTgtPath;
+        $phyPath .= $substring_after_ocmb_chip;
 
         # Getting path value alone by ignoring "physical:"
-        my @hash = split(/\//, substr($nonPervTgtPathWithOMITgtPath, index($nonPervTgtPathWithOMITgtPath, ':') + 1));
+        my @hash = split(/\//, substr($phyPath, index($phyPath, ':') + 1));
+
+        # Getting path value alone by ignoring "physical:"
         processTargetPath($tgtID, \@hash);
+
+        # Add FSI target manually under proc target if MRW target is chip-ocmb.
+        addOCMBFSITarget($tgtID, $phyPath) if index($nonPervTgtsList{$tgtID}->targetType, "chip-ocmb") != -1;
+
+        # Add PIB target manually under proc target if MRW target is chip-ocmb.
+        addOCMBPIBTarget($tgtID, $phyPath) if index($nonPervTgtsList{$tgtID}->targetType, "chip-ocmb") != -1;
     }
 }
 
@@ -491,27 +579,19 @@ sub processTargetPath
     {
         $lastNode->index(${$lastNode->attributeList}{"CHIP_UNIT"}->value);
     }
-    # Filling index for ocmb based on omi target
+    # Filling index for ocmb, memport, dimm targets based on omi target
     # CHIP_UNIT attribute because, those targets are not pervasive target
+    my $comp = $lastNode->compatible;
     if ( index( $lastNode->compatible, "chip-ocmb") != -1 )
     {
         # To get omi target CHIP_UNIT attribute, need to get omi target id.
         # So, using respective given target AFFINITY_PATH to get omi target id.
-        if (exists ${$lastNode->attributeList}{"AFFINITY_PATH"})
-        {
-            my $affinityPath = ${$lastNode->attributeList}{"AFFINITY_PATH"}->value;
-            my $omiTgtId = substr( substr($affinityPath, index($affinityPath, ':') + 1),
-                                   0, index($affinityPath, 'omi-') - 4);
-            $omiTgtId =~ s/[-\/]//g;
-            $lastNode->index(${$mrwTargetList{$omiTgtId}->targetAttrList}{"CHIP_UNIT"}->value);
-        }
-
         # Changing node name for ocmb target as per pdbg expectation.
         # Removing "_chip" from ocmb target element value from PHYS_PATH value.
         my $nodeName = $lastNode->nodeName;
         $nodeName =~ s/_chip//g;
         $lastNode->nodeName($nodeName);
-
+        $lastNode->index(${$lastNode->attributeList}{"FAPI_POS"}->value);
     }
     elsif ($lastNode->compatible eq "unit-fsi")
     {
