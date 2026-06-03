@@ -374,7 +374,7 @@ static int cronus_parse_attr(void *ctx, char *line)
 	char *attr_name, *data_type;
 	char *tok, *saveptr = NULL;
 	uint8_t *ptr;
-	int dim_count, count, index;
+	int dim_count, index;
 	int idx[3] = { -1, -1, -1 };
 	int dim[3] = { -1, -1, -1 };
 	int i, ret;
@@ -437,11 +437,9 @@ static int cronus_parse_attr(void *ctx, char *line)
 	}
 
 	dim_count = 0;
-	count = 1;
 	for (i=0; i<3; i++) {
 		if (dim[i] != -1) {
 			dim_count += 1;
-			count *= dim[i];
 		} else {
 			break;
 		}
